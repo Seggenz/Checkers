@@ -1,0 +1,16 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="Checkers:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/Checkers_jar</output-path>
+    <root id="archive" name="Checkers.jar">
+      <element id="module-output" name="Checkers" />
+      <element id="extracted-dir" path="$JavaFX20$/javafx-swt.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$JavaFX20$/javafx.web.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$JavaFX20$/javafx.base.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$JavaFX20$/javafx.fxml.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$JavaFX20$/javafx.media.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$JavaFX20$/javafx.swing.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$JavaFX20$/javafx.controls.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$JavaFX20$/javafx.graphics.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
