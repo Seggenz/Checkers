@@ -1,3 +1,5 @@
+package controller;
+
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -15,10 +17,10 @@ public class GamePVESceneController {
     private Stage stage;
     private Scene scene;
     private Parent root;
-    private String css = this.getClass().getResource("style.css").toExternalForm();
+    private String css = this.getClass().getResource("resources/css/style.css").toExternalForm();
 
     public void backToMenu(ActionEvent event) throws IOException {
-        root = FXMLLoader.load(getClass().getResource("Main.fxml"));
+        root = FXMLLoader.load(getClass().getResource("resources/view/Main.fxml"));
         stage = (Stage)((Node)event.getSource()).getScene().getWindow();
         scene = new Scene(root);
         scene.getStylesheets().add(css);
