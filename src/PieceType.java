@@ -6,4 +6,18 @@ public enum PieceType {
     PieceType(int moveDir) {
         this.moveDir = moveDir;
     }
+
+    public int getMoveDir() {
+        return moveDir;
+    }
+
+    public PieceType getQueenType() {
+        if (this == RED) {
+            return RED_QUEEN;
+        } else if (this == WHITE) {
+            return WHITE_QUEEN;
+        } else {
+            return this;
+        }
+    }
 }
