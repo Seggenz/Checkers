@@ -1,3 +1,5 @@
+import javafx.scene.paint.Color;
+
 public enum PieceType {
     RED(1),WHITE(-1), RED_QUEEN(1), WHITE_QUEEN(-1);
 
@@ -7,17 +9,31 @@ public enum PieceType {
         this.moveDir = moveDir;
     }
 
-    public int getMoveDir() {
-        return moveDir;
-    }
-
-    public PieceType getQueenType() {
-        if (this == RED) {
-            return RED_QUEEN;
-        } else if (this == WHITE) {
-            return WHITE_QUEEN;
-        } else {
-            return this;
+    public PieceType getOppositeQueen() {
+        switch (this) {
+            case RED:
+                return RED_QUEEN;
+            case WHITE:
+                return WHITE_QUEEN;
+            case RED_QUEEN:
+                return RED;
+            case WHITE_QUEEN:
+                return WHITE;
+            default:
+                throw new IllegalStateException("Unexpected value: " + this);
         }
     }
+    public Color getColor() {
+        switch (this) {
+            case RED:
+            case RED_QUEEN:
+                return Color.RED;
+            case WHITE:
+            case WHITE_QUEEN:
+                return Color.WHITE;
+            default:
+                throw new IllegalStateException("Invalid piece type");
+        }
+    }
+
 }

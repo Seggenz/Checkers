@@ -27,6 +27,7 @@ public class Piece extends StackPane {
 
 
 
+
     public double getOldX() {
         return oldX;
     }

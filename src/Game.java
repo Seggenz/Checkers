@@ -2,6 +2,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
@@ -28,7 +29,7 @@ public class Game {
         for (int y = 0; y < HEIGHT; y++) {
             for (int x = 0; x < WIDTH; x++) {
                 Piece piece = board[x][y].getPiece();
-                if (piece != null && piece.getType() == currentPlayer ) {
+                if (piece != null && piece.getType() == currentPlayer || piece != null && piece.getType() == currentPlayer.getOppositeQueen() ) {
                     for (int newY = 0; newY < HEIGHT; newY++) {
                         for (int newX = 0; newX < WIDTH; newX++) {
                             MoveResult result = tryMove(piece, newX, newY);
@@ -44,8 +45,13 @@ public class Game {
         return availableCaptures;
     }
     private boolean isCaptureAvailableForPiece(Piece piece) {
+        if (piece == null) {
+            return false;
+        }
         int x0 = toBoard(piece.getOldX());
         int y0 = toBoard(piece.getOldY());
+        PieceType pieceType = piece.getType();
+        boolean isQueen = pieceType == PieceType.RED_QUEEN || pieceType == PieceType.WHITE_QUEEN;
 
         for (int newY = 0; newY < HEIGHT; newY++) {
             for (int newX = 0; newX < WIDTH; newX++) {
@@ -93,6 +99,7 @@ public class Game {
     }
 
 private MoveResult tryMove(Piece piece, int newX, int newY) {
+
     if (board[newX][newY].hasPiece() || (newX + newY) % 2 == 0) {
         return new MoveResult(MoveType.NONE);
     }
@@ -116,7 +123,7 @@ private MoveResult tryMove(Piece piece, int newX, int newY) {
 
         while (x1 != newX || y1 != newY) {
             if (board[x1][y1].hasPiece()) {
-                if (board[x1][y1].getPiece().getType() == piece.getType()) {
+                if (board[x1][y1].getPiece().getType().getColor() == piece.getType().getColor()) {
                     pathBlocked = true;
                     break;
                 } else if (hasKill) {
@@ -144,12 +151,14 @@ private MoveResult tryMove(Piece piece, int newX, int newY) {
         int x1 = x0 + (newX - x0) / 2;
         int y1 = y0 + (newY - y0) / 2;
 
-        if(board[x1][y1].hasPiece() && board[x1][y1].getPiece().getType() != piece.getType()) {
+        if(board[x1][y1].hasPiece() && board[x1][y1].getPiece().getType().getColor() != piece.getType().getColor()) {
             if (inCaptureSequence && piece != currentCapturePiece) {
                 return new MoveResult(MoveType.NONE);
             }
+
             return new MoveResult(MoveType.KILL, board[x1][y1].getPiece(), true);
         }
+
     }
 
     return new MoveResult(MoveType.NONE);
@@ -190,6 +199,7 @@ private MoveResult tryMove(Piece piece, int newX, int newY) {
                     board[x0][y0].setPiece(null);
                     board[newX][newY].setPiece(piece);
                     currentPlayer = currentPlayer == PieceType.RED ? PieceType.WHITE : PieceType.RED;
+                    checkGameOver();
                     break;
                 }
                 case KILL -> {
@@ -204,6 +214,7 @@ private MoveResult tryMove(Piece piece, int newX, int newY) {
                     if (!isCaptureAvailableForPiece(piece)) {
                         currentPlayer = currentPlayer == PieceType.RED ? PieceType.WHITE : PieceType.RED;
                     }
+                    checkGameOver();
                     break;
                 }
             }
@@ -211,6 +222,38 @@ private MoveResult tryMove(Piece piece, int newX, int newY) {
 
         return piece;
 
+    }
+    private void checkGameOver() {
+        int redPieces = 0;
+        int whitePieces = 0;
+
+        for (int x = 0; x < board.length; x++) {
+            for (int y = 0; y < board[x].length; y++) {
+                Tile tile = board[x][y];
+                if (tile.hasPiece()) {
+                    PieceType type = tile.getPiece().getType();
+                    if (type == PieceType.RED || type == PieceType.RED_QUEEN) {
+                        redPieces++;
+                    } else if (type == PieceType.WHITE || type == PieceType.WHITE_QUEEN) {
+                        whitePieces++;
+                    }
+                }
+            }
+        }
+
+        if (redPieces == 0) {
+            displayGameOverMessage("Białe wygrały!");
+        } else if (whitePieces == 0) {
+            displayGameOverMessage("Czerwone wygrały!");
+        }
+    }
+
+    private void displayGameOverMessage(String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Koniec gry");
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 
 }
