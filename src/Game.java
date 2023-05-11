@@ -6,20 +6,31 @@ import javafx.scene.control.Alert;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
-
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.util.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
+import java.util.stream.Collectors;
 
 public class Game {
+
     public static final int TILE_SIZE = 100;
     public static final int WIDTH = 8; //amount of bars
     public static final int HEIGHT = 8;
     private boolean inCaptureSequence = false;
     private Piece currentCapturePiece = null;
+    private Timeline timer;
+
 
     private Tile[][] board = new Tile[WIDTH][HEIGHT];
     private Group tileGroup = new Group();
     private Group pieceGroup = new Group();
+
+
+
+
 
     public static PieceType currentPlayer = PieceType.WHITE;
 
@@ -66,6 +77,7 @@ public class Game {
     }
 
     public Parent createContent() {
+
         Pane root = new Pane();
         root.setPrefSize(WIDTH * TILE_SIZE, HEIGHT * TILE_SIZE);
         root.getChildren().addAll(tileGroup,pieceGroup);
@@ -95,6 +107,7 @@ public class Game {
             }
         }
 
+        startTimer();
         return root;
     }
 
@@ -102,6 +115,10 @@ private MoveResult tryMove(Piece piece, int newX, int newY) {
 
     if (board[newX][newY].hasPiece() || (newX + newY) % 2 == 0) {
         return new MoveResult(MoveType.NONE);
+    }
+    if (timer != null) {
+        timer.stop();
+        startTimer();
     }
 
     int x0 = toBoard(piece.getOldX());
@@ -167,6 +184,9 @@ private MoveResult tryMove(Piece piece, int newX, int newY) {
     private int toBoard(double pixel) { //returning piece position on tile
         return (int)(pixel + TILE_SIZE / 2) / TILE_SIZE;
     }
+
+
+
     private Piece makePiece(PieceType type, int x, int y) {
         Piece piece = new Piece(type, x, y);
 
@@ -200,6 +220,7 @@ private MoveResult tryMove(Piece piece, int newX, int newY) {
                     board[newX][newY].setPiece(piece);
                     currentPlayer = currentPlayer == PieceType.RED ? PieceType.WHITE : PieceType.RED;
                     checkGameOver();
+
                     break;
                 }
                 case KILL -> {
@@ -218,11 +239,15 @@ private MoveResult tryMove(Piece piece, int newX, int newY) {
                     break;
                 }
             }
+
         });
+
+
 
         return piece;
 
     }
+
     private void checkGameOver() {
         int redPieces = 0;
         int whitePieces = 0;
@@ -255,5 +280,48 @@ private MoveResult tryMove(Piece piece, int newX, int newY) {
         alert.setContentText(message);
         alert.showAndWait();
     }
+
+
+    private void makeRandomMove() {
+        List<Piece> pieces = pieceGroup.getChildren().stream()
+                .filter(p -> p instanceof Piece)
+                .map(p -> (Piece) p)
+                .filter(p -> p.getType().getColor() == currentPlayer.getColor())
+                .collect(Collectors.toList());
+
+        Random random = new Random();
+        boolean validMove = false;
+
+        while (!validMove) {
+            Piece piece = pieces.get(random.nextInt(pieces.size()));
+            int newX = random.nextInt(WIDTH);
+            int newY = random.nextInt(HEIGHT);
+            MoveResult result = tryMove(piece, newX, newY);
+            if (result.getType() != MoveType.NONE) {
+                piece.move(newX, newY);
+                int x0 = toBoard(piece.getOldX());
+                int y0 = toBoard(piece.getOldY());
+                board[x0][y0].setPiece(null);
+                board[newX][newY].setPiece(piece);
+                if (result.getType() == MoveType.KILL) {
+                    Piece otherPiece = result.getPiece();
+                    board[toBoard(otherPiece.getOldX())][toBoard(otherPiece.getOldY())].setPiece(null);
+                    pieceGroup.getChildren().remove(otherPiece);
+                }
+                currentPlayer = currentPlayer == PieceType.RED ? PieceType.WHITE : PieceType.RED;
+                validMove = true;
+            }
+        }
+    }
+
+    private void startTimer() {
+        timer = new Timeline(new KeyFrame(Duration.seconds(10), e -> {
+            makeRandomMove();
+            startTimer();
+        }));
+        timer.play();
+    }
+
+
 
 }
