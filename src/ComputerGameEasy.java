@@ -17,6 +17,7 @@ public class ComputerGameEasy extends Game {
         timer = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
             if (currentPlayer == PieceType.WHITE && !gameOver ) {
                 makeRandomMove();
+
             }
             startTimer();
         }));

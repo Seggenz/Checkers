@@ -8,6 +8,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
@@ -66,33 +67,80 @@ public class MainView {
         stage = (Stage) source.getScene().getWindow();
         buildGameUI(gamePVE);
     }
+    @FXML
+    private void buildStatistics(ActionEvent event) {
+        // Utwórz nowe okno
+        Stage statisticsStage = new Stage();
+
+        // Utwórz etykiety do wyświetlania statystyk
+        Label longestGameLabel = new Label("Najdłuższy mecz: ");
+        Label shortestGameLabel = new Label("Najkrótszy mecz: ");
+        Label redWinsLabel = new Label("Liczba wygranych meczy przez czerwoną drużynę: ");
+        Label whiteWinsLabel = new Label("Liczba wygranych meczy przez białą drużynę: ");
+        Label totalPiecesTakenLabel = new Label("Liczba sumarycznie zbitych pionów: ");
+        Label mostPiecesTakenLabel = new Label("Największa liczba zbitych pionów w jednej serii: ");
+
+        // Dodaj etykiety do kontenera VBox
+        VBox statisticsVBox = new VBox(
+                longestGameLabel,
+                shortestGameLabel,
+                redWinsLabel,
+                whiteWinsLabel,
+                totalPiecesTakenLabel,
+                mostPiecesTakenLabel
+        );
+        statisticsVBox.setSpacing(10);
+
+        // Utwórz nową scenę
+        Scene scene = new Scene(statisticsVBox, 800, 200);
+        scene.getStylesheets().add("resources/css/style.css");
+        // Ustaw scenę dla okna i wyświetl okno
+        statisticsStage.setScene(scene);
+        statisticsStage.setTitle("Statystyki");
+        statisticsStage.show();
+    }
 
     private void buildGameUI(Game game) {
-        root = new BorderPane();
-        root.setCenter(game.createContent());
-
-        // Tworzymy etykietę do wyświetlania aktualnego gracza
+        // Utworzenie komponentów interfejsu użytkownika
         currentPlayerLabel = new Label();
         currentPlayerLabel.setFont(new Font("Lucida Console", 24));
-        updateCurrentPlayerLabel(game);
-
-        VBox infoBox = new VBox();
-        infoBox.setAlignment(Pos.CENTER);
-        infoBox.setSpacing(10); // Ustawiamy odstęp między elementami
-        infoBox.getChildren().add(currentPlayerLabel);
-        infoBox.setMinHeight(50);
-
-        // Dodajemy VBox do góry BorderPane
-        root.setTop(infoBox);
-
-        VBox timeBox = new VBox();
-        timeBox.setAlignment(Pos.CENTER);
-        timeBox.setSpacing(10); // Ustawiamy odstęp między licznikami
-
-        // Tworzymy liczniki czasu
-        GameTimeLabel = new Label("00:00"); // Tymczasowo ustawiamy tekst na "00:00"
+        whitePiecesLabel = new Label();
+        whitePiecesLabel.setFont(new Font("Lucida Console", 24));
+        redPiecesLabel = new Label();
+        redPiecesLabel.setFont(new Font("Lucida Console", 24));
+        GameTimeLabel = new Label("00:00");
         GameTimeLabel.setFont(new Font("Lucida Console", 24));
 
+        VBox infoBox = new VBox(currentPlayerLabel);
+        infoBox.setAlignment(Pos.CENTER);
+        infoBox.setSpacing(10);
+        infoBox.setMinHeight(50);
+
+        VBox timeBox = new VBox(GameTimeLabel);
+        timeBox.setAlignment(Pos.CENTER);
+        timeBox.setSpacing(10);
+        timeBox.setMinWidth(250);
+
+        VBox piecesBox = new VBox(whitePiecesLabel, redPiecesLabel);
+        piecesBox.setAlignment(Pos.CENTER);
+        piecesBox.setSpacing(10);
+        piecesBox.setMinWidth(250);
+
+        AnchorPane bottom = new AnchorPane();
+        bottom.setMinHeight(50);
+
+        // Konfiguracja głównego panelu
+        root = new BorderPane();
+        root.setCenter(game.createContent());
+        root.setTop(infoBox);
+        root.setLeft(timeBox);
+        root.setRight(piecesBox);
+        root.setBottom(bottom);
+
+        // Aktualizacja interfejsu użytkownika
+        updateCurrentPlayerLabel(game);
+
+        // Uruchamianie zegarów
         StopWatch gameStopWatch = game.getGameStopWatch();
         gameStopWatch.start();
 
@@ -100,10 +148,10 @@ public class MainView {
         pvpTimelineRef.set(new Timeline(new KeyFrame(Duration.seconds(1), e -> {
             long elapsedTime = gameStopWatch.getElapsedTime();
             GameTimeLabel.setText(formatElapsedTime(elapsedTime));
+
             if (game.gameOver) {
                 pvpTimelineRef.get().stop();
             }
-
         })));
 
         Timeline currentPlayerTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
@@ -116,27 +164,6 @@ public class MainView {
         pvpTimeline.setCycleCount(Timeline.INDEFINITE);
         pvpTimeline.play();
 
-        timeBox.getChildren().add(GameTimeLabel);
-
-        timeBox.setMinWidth(250);
-
-        // Dodajemy VBox do lewej strony BorderPane
-        root.setLeft(timeBox);
-
-        whitePiecesLabel = new Label();
-        whitePiecesLabel.setFont(new Font("Lucida Console", 24));
-        redPiecesLabel = new Label();
-        redPiecesLabel.setFont(new Font("Lucida Console", 24));
-
-        VBox piecesBox = new VBox();
-        piecesBox.setAlignment(Pos.CENTER);
-        piecesBox.setSpacing(10); // Ustawiamy odstęp między elementami
-        piecesBox.getChildren().addAll(whitePiecesLabel, redPiecesLabel);
-        piecesBox.setMinWidth(250);
-
-        // Dodajemy VBox do prawej strony BorderPane
-        root.setRight(piecesBox);
-
         Timeline piecesTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
             game.getNumberOfPieces();
             updatePiecesLabels(game);
@@ -144,21 +171,15 @@ public class MainView {
         piecesTimeline.setCycleCount(Timeline.INDEFINITE);
         piecesTimeline.play();
 
+        // Konfiguracja i wyświetlanie sceny
         Scene gameScene = new Scene(root);
         gameScene.getStylesheets().add("resources/css/style.css");
-
-        AnchorPane bottom = new AnchorPane();
-        bottom.setMinHeight(50);
-        root.setBottom(bottom);
 
         stage.setResizable(true);
         stage.setTitle("Checkers");
         stage.setScene(gameScene);
         stage.show();
     }
-
-
-
 
     // Ta metoda konwertuje czas w milisekundach na format MM:SS
     private String formatElapsedTime(long millis) {

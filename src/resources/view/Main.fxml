@@ -31,7 +31,6 @@
 <!--      </GridPane>-->
       <Button layoutX="536.0" layoutY="264.0" mnemonicParsing="false" onAction="#startPVEGame" prefHeight="25.0" prefWidth="129.0" text="Gra z komputerem" />
       <Button layoutX="536.0" layoutY="189.0" mnemonicParsing="false" onAction="#startPVPGame" text="Gra z innym Graczem" />
-      <Button layoutX="536.0" layoutY="493.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="129.0" text="Ustawienia" />
-      <Button layoutX="536.0" layoutY="351.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="129.0" text="Statystyki" />
+      <Button layoutX="536.0" layoutY="351.0" mnemonicParsing="false" onAction="#buildStatistics" prefHeight="25.0" prefWidth="129.0" text="Statystyki" />
    </children>
 </AnchorPane>
