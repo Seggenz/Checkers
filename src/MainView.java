@@ -1,5 +1,6 @@
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -7,19 +8,16 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import resources.StopWatch;
 
 import java.io.IOException;
-import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class MainView {
 
@@ -30,8 +28,11 @@ public class MainView {
     private Scene scene;
     private Game gamePVP;
     private ComputerGameEasy gamePVE;
-    private Label pvpGameTimeLabel;
+    private Label GameTimeLabel;
     private Label pveGameTimeLabel;
+    private Label currentPlayerLabel;
+    private Label whitePiecesLabel;
+    private Label redPiecesLabel;
     public MainView() {
 
     }
@@ -44,13 +45,13 @@ public class MainView {
         }
     }
 
-private void buildMenuUI() throws IOException {
-    Parent root = FXMLLoader.load(getClass().getResource("resources/view/Main.fxml"));
-    scene = new Scene(root);
-    scene.getStylesheets().add("resources/css/style.css");
-    stage.setScene(scene);
-    stage.show();
-}
+    private void buildMenuUI() throws IOException {
+        Parent root = FXMLLoader.load(getClass().getResource("resources/view/Main.fxml"));
+        scene = new Scene(root);
+        scene.getStylesheets().add("resources/css/style.css");
+        stage.setScene(scene);
+        stage.show();
+    }
     @FXML
     private void startPVPGame(ActionEvent event) {
         gamePVP = new Game();
@@ -70,53 +71,92 @@ private void buildMenuUI() throws IOException {
         root = new BorderPane();
         root.setCenter(game.createContent());
 
-        StopWatch gameStopWatch = game.getGameStopWatch();
-        gameStopWatch.start();
+        // Tworzymy etykietę do wyświetlania aktualnego gracza
+        currentPlayerLabel = new Label();
+        currentPlayerLabel.setFont(new Font("Lucida Console", 24));
+        updateCurrentPlayerLabel(game);
+
+        VBox infoBox = new VBox();
+        infoBox.setAlignment(Pos.CENTER);
+        infoBox.setSpacing(10); // Ustawiamy odstęp między elementami
+        infoBox.getChildren().add(currentPlayerLabel);
+        infoBox.setMinHeight(50);
+
+        // Dodajemy VBox do góry BorderPane
+        root.setTop(infoBox);
 
         VBox timeBox = new VBox();
         timeBox.setAlignment(Pos.CENTER);
         timeBox.setSpacing(10); // Ustawiamy odstęp między licznikami
 
         // Tworzymy liczniki czasu
-        if (game instanceof Game) {
-            pvpGameTimeLabel = new Label("00:00"); // Tymczasowo ustawiamy tekst na "00:00"
-            pvpGameTimeLabel.setFont(new Font("Lucida Console", 24));
+        GameTimeLabel = new Label("00:00"); // Tymczasowo ustawiamy tekst na "00:00"
+        GameTimeLabel.setFont(new Font("Lucida Console", 24));
 
-            // Używamy Timeline do cyklicznego aktualizowania tekstu etykiety
-            Timeline pvpTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
-                long elapsedTime = gameStopWatch.getElapsedTime();
-                pvpGameTimeLabel.setText(formatElapsedTime(elapsedTime));
-            }));
-            pvpTimeline.setCycleCount(Timeline.INDEFINITE);
-            pvpTimeline.play();
+        StopWatch gameStopWatch = game.getGameStopWatch();
+        gameStopWatch.start();
 
-            timeBox.getChildren().add(pvpGameTimeLabel);
-        } else if (game instanceof ComputerGameEasy) {
-            pveGameTimeLabel = new Label("00:00"); // Tymczasowo ustawiamy tekst na "00:00"
-            pveGameTimeLabel.setFont(new Font("Lucida Console", 24));
+        AtomicReference<Timeline> pvpTimelineRef = new AtomicReference<>();
+        pvpTimelineRef.set(new Timeline(new KeyFrame(Duration.seconds(1), e -> {
+            long elapsedTime = gameStopWatch.getElapsedTime();
+            GameTimeLabel.setText(formatElapsedTime(elapsedTime));
+            if (game.gameOver) {
+                pvpTimelineRef.get().stop();
+            }
 
-            // Używamy Timeline do cyklicznego aktualizowania tekstu etykiety
-            Timeline pveTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
-                long elapsedTime = gameStopWatch.getElapsedTime();
-                pveGameTimeLabel.setText(formatElapsedTime(elapsedTime));
-            }));
-            pveTimeline.setCycleCount(Timeline.INDEFINITE);
-            pveTimeline.play();
+        })));
 
-            timeBox.getChildren().add(pveGameTimeLabel);
-        }
+        Timeline currentPlayerTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
+            updateCurrentPlayerLabel(game);
+        }));
+        currentPlayerTimeline.setCycleCount(Timeline.INDEFINITE);
+        currentPlayerTimeline.play();
+
+        Timeline pvpTimeline = pvpTimelineRef.get();
+        pvpTimeline.setCycleCount(Timeline.INDEFINITE);
+        pvpTimeline.play();
+
+        timeBox.getChildren().add(GameTimeLabel);
+
+        timeBox.setMinWidth(250);
 
         // Dodajemy VBox do lewej strony BorderPane
         root.setLeft(timeBox);
 
+        whitePiecesLabel = new Label();
+        whitePiecesLabel.setFont(new Font("Lucida Console", 24));
+        redPiecesLabel = new Label();
+        redPiecesLabel.setFont(new Font("Lucida Console", 24));
+
+        VBox piecesBox = new VBox();
+        piecesBox.setAlignment(Pos.CENTER);
+        piecesBox.setSpacing(10); // Ustawiamy odstęp między elementami
+        piecesBox.getChildren().addAll(whitePiecesLabel, redPiecesLabel);
+        piecesBox.setMinWidth(250);
+
+        // Dodajemy VBox do prawej strony BorderPane
+        root.setRight(piecesBox);
+
+        Timeline piecesTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
+            game.getNumberOfPieces();
+            updatePiecesLabels(game);
+        }));
+        piecesTimeline.setCycleCount(Timeline.INDEFINITE);
+        piecesTimeline.play();
+
         Scene gameScene = new Scene(root);
         gameScene.getStylesheets().add("resources/css/style.css");
 
-        stage.setResizable(false);
+        AnchorPane bottom = new AnchorPane();
+        bottom.setMinHeight(50);
+        root.setBottom(bottom);
+
+        stage.setResizable(true);
         stage.setTitle("Checkers");
         stage.setScene(gameScene);
         stage.show();
     }
+
 
 
 
@@ -128,8 +168,8 @@ private void buildMenuUI() throws IOException {
     }
 
     private void updatePvpGameTimeLabel() {
-        if (gamePVP != null && pvpGameTimeLabel != null) {
-            pvpGameTimeLabel.setText(gamePVP.getGameStopWatch().toString());
+        if (gamePVP != null && GameTimeLabel != null) {
+            GameTimeLabel.setText(gamePVP.getGameStopWatch().toString());
         }
     }
 
@@ -137,5 +177,21 @@ private void buildMenuUI() throws IOException {
         if (gamePVE != null && pveGameTimeLabel != null) {
             pveGameTimeLabel.setText(gamePVE.getGameStopWatch().toString());
         }
+    }
+    public void updateCurrentPlayerLabel(Game game) {
+        // Zakładamy, że metoda getPlayerTurn() zwraca aktualnego gracza
+        String currentPlayer = game.getPlayerTurn().toString();
+        currentPlayerLabel.setText("Aktualny gracz: " + currentPlayer);
+    }
+
+    public void updatePiecesLabels(Game game) {
+        // Zakładamy, że metody getNumberOfWhitePieces() i getNumberOfBlackPieces() zwracają liczbę białych i czarnych pionków
+        int whitePieces = game.whitePieces;
+        int redPieces = game.redPieces;
+
+        Platform.runLater(() -> {
+            whitePiecesLabel.setText("Białe pionki: " + whitePieces);
+            redPiecesLabel.setText("Czerwone pionki: " + redPieces);
+        });
     }
 }

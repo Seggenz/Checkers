@@ -1,19 +1,15 @@
 import javafx.animation.Animation;
 import javafx.application.Platform;
-import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
-import javafx.stage.Stage;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.util.Duration;
-import resources.StopWatch;
 
+import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -35,12 +31,16 @@ public  class Game {
     private Timeline moveTimer;
     private Label moveTimerLabel = new Label();
 
+    public static String playerTurn = "Biały";
+
+
 
 
     protected Tile[][] board = new Tile[WIDTH][HEIGHT];
     private Group tileGroup = new Group();
     protected Group pieceGroup = new Group();
-
+    int redPieces = 0;
+    int whitePieces = 0;
 
     public Game() {
         this.gameStopWatch = new StopWatch();
@@ -239,8 +239,8 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
                     board[x0][y0].setPiece(null);
                     board[newX][newY].setPiece(piece);
                     currentPlayer = currentPlayer == PieceType.RED ? PieceType.WHITE : PieceType.RED;
+                    updatePlayerTurnLabel();
                     checkGameOver();
-
                     break;
                 }
                 case KILL -> {
@@ -255,6 +255,7 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
                     if (!isCaptureAvailableForPiece(piece)) {
                         currentPlayer = currentPlayer == PieceType.RED ? PieceType.WHITE : PieceType.RED;
                     }
+                    updatePlayerTurnLabel();
                     checkGameOver();
                     break;
                 }
@@ -265,6 +266,27 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
 
 
         return piece;
+
+    }
+
+    void getNumberOfPieces() {
+        int tx = 0;
+        int ty = 0;
+        for (int x = 0; x < board.length; x++) {
+            for (int y = 0; y < board[x].length; y++) {
+                Tile tile = board[x][y];
+                if (tile.hasPiece()) {
+                    PieceType type = tile.getPiece().getType();
+                    if (type == PieceType.RED || type == PieceType.RED_QUEEN) {
+                        tx++;
+                    } else if (type == PieceType.WHITE || type == PieceType.WHITE_QUEEN) {
+                        ty++;
+                    }
+                }
+            }
+        }
+        redPieces = tx;
+        whitePieces= ty;
 
     }
 
@@ -409,7 +431,18 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
         updateGameTimerLabel();
     }
 
+    private void updatePlayerTurnLabel() {
+        if(currentPlayer == PieceType.RED) {
+            playerTurn = "Czerwony";
+        }
+        else {
+            playerTurn = "Biały";
+        }
+    }
 
 
+    public PieceType getPlayerTurn() {
+        return  currentPlayer;
+    }
 
 }

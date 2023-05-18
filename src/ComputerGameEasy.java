@@ -1,7 +1,6 @@
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.util.Duration;
-import resources.StopWatch;
 
 public class ComputerGameEasy extends Game {
 

@@ -1,5 +1,3 @@
-package resources;
-
 public class StopWatch {
     private long startTime = 0;
     private long stopTime = 0;
