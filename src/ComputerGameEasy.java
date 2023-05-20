@@ -5,8 +5,15 @@ import javafx.util.Duration;
 public class ComputerGameEasy extends Game {
 
     private StopWatch gameStopWatch = new StopWatch();
+    public MainView mainView;
+
     public ComputerGameEasy() {
         this.gameStopWatch = new StopWatch();
+    }
+
+    public ComputerGameEasy(MainView mainView) {
+        super(mainView);
+        this.mainView = mainView;
     }
 
     public StopWatch getGameStopWatch() {

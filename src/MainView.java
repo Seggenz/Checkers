@@ -8,8 +8,12 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
@@ -18,6 +22,12 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class MainView {
@@ -25,7 +35,7 @@ public class MainView {
     @FXML
 
     private Stage stage;
-    private BorderPane root;
+    public BorderPane root;
     private Scene scene;
     private Game gamePVP;
     private ComputerGameEasy gamePVE;
@@ -46,7 +56,7 @@ public class MainView {
         }
     }
 
-    private void buildMenuUI() throws IOException {
+    public void buildMenuUI() throws IOException {
         Parent root = FXMLLoader.load(getClass().getResource("resources/view/Main.fxml"));
         scene = new Scene(root);
         scene.getStylesheets().add("resources/css/style.css");
@@ -55,30 +65,38 @@ public class MainView {
     }
     @FXML
     private void startPVPGame(ActionEvent event) {
-        gamePVP = new Game();
+        gamePVP = new Game(this);
         Node source = (Node) event.getSource();
         stage = (Stage) source.getScene().getWindow();
         buildGameUI(gamePVP);
     }
     @FXML
     private void startPVEGame(ActionEvent event) {
-        gamePVE = new ComputerGameEasy();
+        gamePVE = new ComputerGameEasy(this);
         Node source = (Node) event.getSource();
         stage = (Stage) source.getScene().getWindow();
         buildGameUI(gamePVE);
     }
     @FXML
     private void buildStatistics(ActionEvent event) {
+        List<String> stats = new ArrayList<>();
+        try {
+            Path path = Paths.get("src/resources/files/stats.txt");
+            stats = Files.readAllLines(path);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         // Utwórz nowe okno
         Stage statisticsStage = new Stage();
 
         // Utwórz etykiety do wyświetlania statystyk
-        Label longestGameLabel = new Label("Najdłuższy mecz: ");
-        Label shortestGameLabel = new Label("Najkrótszy mecz: ");
-        Label redWinsLabel = new Label("Liczba wygranych meczy przez czerwoną drużynę: ");
-        Label whiteWinsLabel = new Label("Liczba wygranych meczy przez białą drużynę: ");
-        Label totalPiecesTakenLabel = new Label("Liczba sumarycznie zbitych pionów: ");
-        Label mostPiecesTakenLabel = new Label("Największa liczba zbitych pionów w jednej serii: ");
+        Label longestGameLabel = new Label("Najkrótszy mecz: " + stats.get(0));
+        Label shortestGameLabel = new Label("Najdłuższy mecz: " + stats.get(1));
+        Label redWinsLabel = new Label("Liczba wygranych meczy przez białą drużynę: " + stats.get(2));
+        Label whiteWinsLabel = new Label("Liczba wygranych meczy przez czerwoną drużynę: " + stats.get(3));
+        Label totalPiecesTakenLabel = new Label("Liczba sumarycznie zbitych pionów: " + stats.get(4));
+        Label mostPiecesTakenLabel = new Label("Największa liczba zbitych pionów w jednej serii: " + stats.get(5));
+
 
         // Dodaj etykiety do kontenera VBox
         VBox statisticsVBox = new VBox(
@@ -137,6 +155,7 @@ public class MainView {
         root.setRight(piecesBox);
         root.setBottom(bottom);
 
+
         // Aktualizacja interfejsu użytkownika
         updateCurrentPlayerLabel(game);
 
@@ -174,6 +193,25 @@ public class MainView {
         // Konfiguracja i wyświetlanie sceny
         Scene gameScene = new Scene(root);
         gameScene.getStylesheets().add("resources/css/style.css");
+
+        gameScene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.setTitle("Wyjście do menu");
+                alert.setHeaderText("Czy jesteś pewny, że chcesz wrócić do Menu?");
+
+                Optional<ButtonType> result = alert.showAndWait();
+                if (result.isPresent() && result.get() == ButtonType.OK) {
+                    try {
+                        buildMenuUI();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+
+        root.requestFocus();
 
         stage.setResizable(true);
         stage.setTitle("Checkers");

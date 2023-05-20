@@ -3,16 +3,25 @@ import javafx.application.Platform;
 import javafx.scene.Group;
 import javafx.scene.Parent;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.Pane;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.util.Duration;
 
 import java.beans.PropertyChangeListener;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -25,6 +34,7 @@ public  class Game {
     protected Piece currentCapturePiece = null;
     protected Timeline timer;
     protected boolean gameOver = false;
+    private int totalCapturedPieces = 0;
 
     private StopWatch gameStopWatch = new StopWatch();
     private Label gameTimerLabel = new Label();
@@ -33,17 +43,22 @@ public  class Game {
 
     public static String playerTurn = "Biały";
 
-
-
-
+    public MainView mainView;
+    File gameTimesFile = new File("src/resources/files/stats.txt");
     protected Tile[][] board = new Tile[WIDTH][HEIGHT];
     private Group tileGroup = new Group();
     protected Group pieceGroup = new Group();
     int redPieces = 0;
     int whitePieces = 0;
+    int totalCapturedPiecesInOneSeries = 0;
+    int capturedPiecesInOneSeries = 0;
 
     public Game() {
+
         this.gameStopWatch = new StopWatch();
+    }
+    public Game(MainView mainView) {
+        this.mainView = mainView;
     }
     public StopWatch getGameStopWatch() {
         return gameStopWatch;
@@ -189,7 +204,7 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
             if (inCaptureSequence && piece != currentCapturePiece) {
                 return new MoveResult(MoveType.NONE);
             }
-
+            capturedPiecesInOneSeries++;
             return new MoveResult(MoveType.KILL, board[x1][y1].getPiece(), true, 1);
         }
 
@@ -309,27 +324,59 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
         }
 
         if (redPieces == 0) {
+            totalCapturedPieces = totalCapturedPieces + 14 + whitePieces;
             gameOver = true;
             displayGameOverMessage("Białe wygrały!");
+            saveTotalCapturedPieces(totalCapturedPieces);
         } else if (whitePieces == 0) {
+            totalCapturedPieces = totalCapturedPieces + 14 + redPieces;
             gameOver = true;
             displayGameOverMessage("Czerwone wygrały!");
+            saveTotalCapturedPieces(totalCapturedPieces);
         }
     }
 
     private void displayGameOverMessage(String message) {
         stopGameTimer();
+        try {
+            Path path = Paths.get(gameTimesFile.toURI());
+            List<String> lines = Files.readAllLines(path);
+            int whiteWins = Integer.parseInt(lines.get(2));
+            int redWins = Integer.parseInt(lines.get(3));
+
+            if (message.equals("Białe wygrały!")) {
+                whiteWins++;
+                lines.set(2, String.valueOf(whiteWins));
+            } else if (message.equals("Czerwone wygrały!")) {
+                redWins++;
+                lines.set(3, String.valueOf(redWins));
+            }
+
+            Files.write(path, lines);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+//        overwriteLastLine(totalCapturedPiecesInOneSeries);
         Platform.runLater(() -> {
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Game Over");
             alert.setHeaderText(null);
             alert.setContentText(message);
-            alert.showAndWait();
+
+            ButtonType okButtonType = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
+            alert.getButtonTypes().setAll(okButtonType);
+
+            Optional<ButtonType> result = alert.showAndWait();
+            if (result.get() == okButtonType) {
+                // Powrót do menu głównego
+                try {
+                    mainView.buildMenuUI();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         });
     }
-
-
-
     public void makeRandomMove() {
         List<Piece> pieces = pieceGroup.getChildren().stream()
                 .filter(p -> p instanceof Piece)
@@ -380,6 +427,14 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
                         inCaptureSequence = false;
                         currentCapturePiece = null;
                         currentPlayer = currentPlayer == PieceType.RED ? PieceType.WHITE : PieceType.RED;
+                        // After a capture sequence ends, check if the current series has more captures than the previous maximum.
+                        if (capturedPiecesInOneSeries > totalCapturedPiecesInOneSeries) {
+                            totalCapturedPiecesInOneSeries = capturedPiecesInOneSeries;
+                            // Save the new maximum number of captures.
+                            saveTotalCapturedPieces(totalCapturedPiecesInOneSeries);
+                        }
+                        // Reset the number of captures in the current series.
+                        capturedPiecesInOneSeries = 0;
                     }
                 } else {
                     inCaptureSequence = false;
@@ -429,7 +484,100 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
     private void stopGameTimer() {
         gameStopWatch.stop();
         updateGameTimerLabel();
+
+        long gameDuration = gameStopWatch.getElapsedTime() / 1000;  // Game duration in seconds
+        long[] times = readGameTimesFromFile();
+
+        if (gameDuration < times[0]) {
+            times[0] = gameDuration;  // Update shortest time
+        }
+        if (gameDuration > times[1]) {
+            times[1] = gameDuration;  // Update longest time
+        }
+
+        // Update the game times file
+        try {
+            Path path = Paths.get(gameTimesFile.toURI());
+            List<String> lines = Files.readAllLines(path);
+            if (lines.size() >= 2) {
+                lines.set(0, String.format("%02d:%02d", times[0] / 60, times[0] % 60));
+                lines.set(1, String.format("%02d:%02d", times[1] / 60, times[1] % 60));
+                Files.write(path, lines);
+            } else {
+                // Add error handling here
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
+
+
+
+    public long[] readGameTimesFromFile() {
+        try {
+            Path path = Paths.get(gameTimesFile.toURI());
+            List<String> lines = Files.readAllLines(path);
+
+            if (lines.size() >= 2) {
+                long[] times = new long[2];
+                times[0] = convertToSeconds(lines.get(0));  // Shortest time
+                times[1] = convertToSeconds(lines.get(1));  // Longest time
+                return times;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Return default times if reading from the file fails
+        return new long[]{Long.MAX_VALUE, 0};
+    }
+    private void saveTotalCapturedPieces(int capturedPieces) {
+        try {
+            Path path = Paths.get(gameTimesFile.toURI());
+            List<String> lines = Files.readAllLines(path);
+
+            if (lines.size() >= 5) {  // Make sure the line exists
+                int totalCapturedPieces = Integer.parseInt(lines.get(4));  // Assuming the 5th line is the total number of captured pieces
+                totalCapturedPieces += capturedPieces;
+                lines.set(4, String.valueOf(totalCapturedPieces));  // Update the value in the list
+                Files.write(path, lines);  // Write back the list to the file
+            } else {
+                // If the line does not exist, append a new line with the current game's captured pieces
+                lines.add(String.valueOf(capturedPieces));
+                Files.write(path, lines, StandardOpenOption.APPEND);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void overwriteLastLine(int newHighScore) {
+        try {
+            Path path = Paths.get(gameTimesFile.toURI());
+            List<String> lines = Files.readAllLines(path);
+
+            if (!lines.isEmpty()) { // Check if the file is not empty
+                lines.set(lines.size() - 1, String.valueOf(newHighScore)); // Overwrite the last line with the new high score
+                Files.write(path, lines); // Write back the list to the file
+            } else {
+                // If the file is empty, write the high score as the first line
+                lines.add(String.valueOf(newHighScore));
+                Files.write(path, lines, StandardOpenOption.APPEND);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public long convertToSeconds(String time) {
+        String[] parts = time.split(":");
+        long minutes = Long.parseLong(parts[0]);
+        long seconds = Long.parseLong(parts[1]);
+        return minutes * 60 + seconds;
+    }
+
+
 
     private void updatePlayerTurnLabel() {
         if(currentPlayer == PieceType.RED) {
@@ -439,7 +587,6 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
             playerTurn = "Biały";
         }
     }
-
 
     public PieceType getPlayerTurn() {
         return  currentPlayer;
