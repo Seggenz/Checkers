@@ -6,15 +6,12 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
-import javafx.scene.input.KeyCode;
 import javafx.scene.layout.Pane;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.util.Duration;
 
-import java.beans.PropertyChangeListener;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -50,8 +47,8 @@ public  class Game {
     protected Group pieceGroup = new Group();
     int redPieces = 0;
     int whitePieces = 0;
-    int totalCapturedPiecesInOneSeries = 0;
-    int capturedPiecesInOneSeries = 0;
+    private int capturedPiecesInOneSeries = 0;
+    int currentRecord = 0;
 
     public Game() {
 
@@ -139,7 +136,7 @@ public  class Game {
             }
         }
 
-        startTimer();
+        startRandomMoveTimer();
         return root;
     }
 
@@ -150,7 +147,7 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
     }
     if (timer != null) {
         timer.stop();
-        startTimer();
+        startRandomMoveTimer();
     }
 
     int x0 = toBoard(piece.getOldX());
@@ -204,7 +201,14 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
             if (inCaptureSequence && piece != currentCapturePiece) {
                 return new MoveResult(MoveType.NONE);
             }
-            capturedPiecesInOneSeries++;
+            if(inCaptureSequence) {
+                capturedPiecesInOneSeries++;
+                if(capturedPiecesInOneSeries > currentRecord) {
+                    currentRecord = capturedPiecesInOneSeries;
+                }
+            } else {
+                capturedPiecesInOneSeries = 1; // reset for a new sequence
+            }
             return new MoveResult(MoveType.KILL, board[x1][y1].getPiece(), true, 1);
         }
 
@@ -275,7 +279,7 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
                     break;
                 }
             }
-            startTimer();
+            startRandomMoveTimer();
         });
 
 
@@ -356,7 +360,6 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
         } catch (IOException e) {
             e.printStackTrace();
         }
-//        overwriteLastLine(totalCapturedPiecesInOneSeries);
         Platform.runLater(() -> {
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Game Over");
@@ -427,14 +430,6 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
                         inCaptureSequence = false;
                         currentCapturePiece = null;
                         currentPlayer = currentPlayer == PieceType.RED ? PieceType.WHITE : PieceType.RED;
-                        // After a capture sequence ends, check if the current series has more captures than the previous maximum.
-                        if (capturedPiecesInOneSeries > totalCapturedPiecesInOneSeries) {
-                            totalCapturedPiecesInOneSeries = capturedPiecesInOneSeries;
-                            // Save the new maximum number of captures.
-                            saveTotalCapturedPieces(totalCapturedPiecesInOneSeries);
-                        }
-                        // Reset the number of captures in the current series.
-                        capturedPiecesInOneSeries = 0;
                     }
                 } else {
                     inCaptureSequence = false;
@@ -450,14 +445,14 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
     }
 
 
-    public void startTimer() {
+    public void startRandomMoveTimer() {
         if (moveTimer != null) {
             moveTimer.stop();
         }
 
         moveTimer = new Timeline(new KeyFrame(Duration.seconds(30), e -> {
             makeRandomMove();
-            startTimer();
+            startRandomMoveTimer();
         }));
 
         moveTimer.setCycleCount(30); // Licznik będzie odliczał 30 sekund
@@ -511,8 +506,6 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
         }
     }
 
-
-
     public long[] readGameTimesFromFile() {
         try {
             Path path = Paths.get(gameTimesFile.toURI());
@@ -551,23 +544,42 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
         }
     }
 
-    private void overwriteLastLine(int newHighScore) {
+    private void updateStatsFile() {
         try {
-            Path path = Paths.get(gameTimesFile.toURI());
-            List<String> lines = Files.readAllLines(path);
-
-            if (!lines.isEmpty()) { // Check if the file is not empty
-                lines.set(lines.size() - 1, String.valueOf(newHighScore)); // Overwrite the last line with the new high score
-                Files.write(path, lines); // Write back the list to the file
-            } else {
-                // If the file is empty, write the high score as the first line
-                lines.add(String.valueOf(newHighScore));
-                Files.write(path, lines, StandardOpenOption.APPEND);
+            File statsFile = new File("src/resources/files/stats.txt");
+            Scanner scanner = new Scanner(statsFile);
+            List<String> lines = new ArrayList<String>();
+            while(scanner.hasNextLine()) {
+                lines.add(scanner.nextLine());
             }
+            scanner.close();
+
+            // Get the current record from the last line
+            String lastLine = lines.get(lines.size() - 1);
+            String[] splitLine = lastLine.split(" ");
+            int FileRecord = 0;
+            if (!lastLine.isEmpty()) {
+                FileRecord = Integer.parseInt(splitLine[splitLine.length - 1]);
+            }
+
+            // Only update the record if the new value is greater than the current record
+            if(currentRecord > FileRecord) {
+                lines.set(lines.size() - 1, String.valueOf(currentRecord));
+            }
+
+            // Write the entire file back to disk
+            FileWriter writer = new FileWriter(statsFile);
+            for(String line : lines) {
+                writer.write(line + "\n");
+            }
+            writer.close();
+
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
+
 
 
     public long convertToSeconds(String time) {

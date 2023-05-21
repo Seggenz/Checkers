@@ -40,10 +40,10 @@ public class MainView {
     private Game gamePVP;
     private ComputerGameEasy gamePVE;
     private Label GameTimeLabel;
-    private Label pveGameTimeLabel;
     private Label currentPlayerLabel;
     private Label whitePiecesLabel;
     private Label redPiecesLabel;
+
     public MainView() {
 
     }
@@ -95,7 +95,6 @@ public class MainView {
         Label redWinsLabel = new Label("Liczba wygranych meczy przez białą drużynę: " + stats.get(2));
         Label whiteWinsLabel = new Label("Liczba wygranych meczy przez czerwoną drużynę: " + stats.get(3));
         Label totalPiecesTakenLabel = new Label("Liczba sumarycznie zbitych pionów: " + stats.get(4));
-        Label mostPiecesTakenLabel = new Label("Największa liczba zbitych pionów w jednej serii: " + stats.get(5));
 
 
         // Dodaj etykiety do kontenera VBox
@@ -104,8 +103,7 @@ public class MainView {
                 shortestGameLabel,
                 redWinsLabel,
                 whiteWinsLabel,
-                totalPiecesTakenLabel,
-                mostPiecesTakenLabel
+                totalPiecesTakenLabel
         );
         statisticsVBox.setSpacing(10);
 
@@ -226,17 +224,6 @@ public class MainView {
         return String.format("%02d:%02d", minutes, seconds);
     }
 
-    private void updatePvpGameTimeLabel() {
-        if (gamePVP != null && GameTimeLabel != null) {
-            GameTimeLabel.setText(gamePVP.getGameStopWatch().toString());
-        }
-    }
-
-    private void updatePveGameTimeLabel() {
-        if (gamePVE != null && pveGameTimeLabel != null) {
-            pveGameTimeLabel.setText(gamePVE.getGameStopWatch().toString());
-        }
-    }
     public void updateCurrentPlayerLabel(Game game) {
         // Zakładamy, że metoda getPlayerTurn() zwraca aktualnego gracza
         String currentPlayer = game.getPlayerTurn().toString();

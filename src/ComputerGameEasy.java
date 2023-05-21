@@ -20,13 +20,13 @@ public class ComputerGameEasy extends Game {
         return gameStopWatch;
     }
     @Override
-    public void startTimer() {
+    public void startRandomMoveTimer() {
         timer = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
             if (currentPlayer == PieceType.WHITE && !gameOver ) {
                 makeRandomMove();
 
             }
-            startTimer();
+            startRandomMoveTimer();
         }));
         timer.play();
     }
