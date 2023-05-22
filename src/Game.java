@@ -6,6 +6,8 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -47,8 +49,7 @@ public  class Game {
     protected Group pieceGroup = new Group();
     int redPieces = 0;
     int whitePieces = 0;
-    private int capturedPiecesInOneSeries = 0;
-    int currentRecord = 0;
+
 
     public Game() {
 
@@ -60,8 +61,18 @@ public  class Game {
     public StopWatch getGameStopWatch() {
         return gameStopWatch;
     }
-
     public static PieceType currentPlayer = PieceType.WHITE;
+
+    public interface OnMoveCompleteListener {
+        void onMoveComplete();
+
+    }
+
+    private OnMoveCompleteListener moveCompleteListener;
+
+    public void setOnMoveCompleteListener(OnMoveCompleteListener listener) {
+        this.moveCompleteListener = listener;
+    }
 
     List<MoveResult> checkAvailableCaptures(PieceType currentPlayer) {
         List<MoveResult> availableCaptures = new ArrayList<>();
@@ -156,6 +167,9 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
     boolean isQueen = piece.getType() == PieceType.RED_QUEEN || piece.getType() == PieceType.WHITE_QUEEN;
 
     if (!isQueen && Math.abs(newX - x0) == 1 && newY - y0 == piece.getType().moveDir) {
+        if (moveCompleteListener != null) {
+            moveCompleteListener.onMoveComplete();
+        }
         return new MoveResult(MoveType.NORMAL);
     }
     else if (isQueen && Math.abs(newX - x0) == Math.abs(newY - y0)) {
@@ -187,8 +201,14 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
 
         if (!pathBlocked) {
             if (hasKill) {
+                if (moveCompleteListener != null) {
+                    moveCompleteListener.onMoveComplete();
+                }
                 return new MoveResult(MoveType.KILL, pieceToKill);
             } else {
+                if (moveCompleteListener != null) {
+                    moveCompleteListener.onMoveComplete();
+                }
                 return new MoveResult(MoveType.NORMAL);
             }
         }
@@ -201,13 +221,8 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
             if (inCaptureSequence && piece != currentCapturePiece) {
                 return new MoveResult(MoveType.NONE);
             }
-            if(inCaptureSequence) {
-                capturedPiecesInOneSeries++;
-                if(capturedPiecesInOneSeries > currentRecord) {
-                    currentRecord = capturedPiecesInOneSeries;
-                }
-            } else {
-                capturedPiecesInOneSeries = 1; // reset for a new sequence
+            if (moveCompleteListener != null) {
+                moveCompleteListener.onMoveComplete();
             }
             return new MoveResult(MoveType.KILL, board[x1][y1].getPiece(), true, 1);
         }
@@ -259,7 +274,11 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
                     board[newX][newY].setPiece(piece);
                     currentPlayer = currentPlayer == PieceType.RED ? PieceType.WHITE : PieceType.RED;
                     updatePlayerTurnLabel();
+                    if (moveCompleteListener != null) {
+                        moveCompleteListener.onMoveComplete();
+                    }
                     checkGameOver();
+
                     break;
                 }
                 case KILL -> {
@@ -275,6 +294,9 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
                         currentPlayer = currentPlayer == PieceType.RED ? PieceType.WHITE : PieceType.RED;
                     }
                     updatePlayerTurnLabel();
+                    if (moveCompleteListener != null) {
+                        moveCompleteListener.onMoveComplete();
+                    }
                     checkGameOver();
                     break;
                 }
@@ -426,6 +448,9 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
                     checkGameOver();
                     inCaptureSequence = true;
                     currentCapturePiece = piece;
+                    if (moveCompleteListener != null) {
+                        moveCompleteListener.onMoveComplete();
+                    }
                     if (!isCaptureAvailableForPiece(piece)) {
                         inCaptureSequence = false;
                         currentCapturePiece = null;
@@ -435,6 +460,9 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
                     inCaptureSequence = false;
                     currentCapturePiece = null;
                     currentPlayer = currentPlayer == PieceType.RED ? PieceType.WHITE : PieceType.RED;
+                    if (moveCompleteListener != null) {
+                        moveCompleteListener.onMoveComplete();
+                    }
                 }
                 break;
             } else {
@@ -455,9 +483,8 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
             startRandomMoveTimer();
         }));
 
-        moveTimer.setCycleCount(30); // Licznik będzie odliczał 30 sekund
+        moveTimer.setCycleCount(30);
         moveTimer.currentTimeProperty().addListener((observable, oldValue, newValue) -> {
-            // Aktualizacja etykiety zegara z nową wartością
             Platform.runLater(() -> moveTimerLabel.setText("Next move in: " + (30 - newValue.toSeconds()) + "s"));
         });
 
@@ -544,40 +571,7 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
         }
     }
 
-    private void updateStatsFile() {
-        try {
-            File statsFile = new File("src/resources/files/stats.txt");
-            Scanner scanner = new Scanner(statsFile);
-            List<String> lines = new ArrayList<String>();
-            while(scanner.hasNextLine()) {
-                lines.add(scanner.nextLine());
-            }
-            scanner.close();
 
-            // Get the current record from the last line
-            String lastLine = lines.get(lines.size() - 1);
-            String[] splitLine = lastLine.split(" ");
-            int FileRecord = 0;
-            if (!lastLine.isEmpty()) {
-                FileRecord = Integer.parseInt(splitLine[splitLine.length - 1]);
-            }
-
-            // Only update the record if the new value is greater than the current record
-            if(currentRecord > FileRecord) {
-                lines.set(lines.size() - 1, String.valueOf(currentRecord));
-            }
-
-            // Write the entire file back to disk
-            FileWriter writer = new FileWriter(statsFile);
-            for(String line : lines) {
-                writer.write(line + "\n");
-            }
-            writer.close();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
 
 

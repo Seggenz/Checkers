@@ -6,7 +6,7 @@
 
 <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="820.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="MainView">
    <children>
-      <Label layoutX="300.0" layoutY="57.0" prefHeight="17.0" prefWidth="600.0" text="Warcaby" />
+      <Label fx:id="gameTitle" layoutX="300.0" layoutY="100.0" prefHeight="17.0" prefWidth="600.0" text="Warcaby" />
 <!--      <GridPane layoutX="-2.0" layoutY="2.0" prefHeight="500.0" prefWidth="502.0">-->
 <!--        <columnConstraints>-->
 <!--          <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />-->
@@ -29,8 +29,8 @@
 <!--          <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />-->
 <!--        </rowConstraints>-->
 <!--      </GridPane>-->
-      <Button layoutX="536.0" layoutY="264.0" mnemonicParsing="false" onAction="#startPVEGame" prefHeight="25.0" prefWidth="129.0" text="Gra z komputerem" />
-      <Button layoutX="536.0" layoutY="189.0" mnemonicParsing="false" onAction="#startPVPGame" text="Gra z innym Graczem" />
-      <Button layoutX="536.0" layoutY="351.0" mnemonicParsing="false" onAction="#buildStatistics" prefHeight="25.0" prefWidth="129.0" text="Statystyki" />
+      <Button layoutX="500.0" layoutY="250.0" mnemonicParsing="false" onAction="#startPVPGame" prefWidth="200" text="Gra z innym Graczem" />
+      <Button layoutX="500.0" layoutY="350.0" mnemonicParsing="false" onAction="#startPVEGame" prefWidth="200" text="Gra z komputerem" />
+      <Button layoutX="500.0" layoutY="450.0" mnemonicParsing="false" onAction="#buildStatistics" prefWidth="200" text="Statystyki" />
    </children>
 </AnchorPane>
