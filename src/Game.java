@@ -330,6 +330,27 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
         whitePieces= ty;
 
     }
+    List<MoveResult> checkAvailableMoves(PieceType currentPlayer) {
+        List<MoveResult> availableMoves = new ArrayList<>();
+
+        for (int y = 0; y < HEIGHT; y++) {
+            for (int x = 0; x < WIDTH; x++) {
+                Piece piece = board[x][y].getPiece();
+                if (piece != null && piece.getType() == currentPlayer || piece != null && piece.getType() == currentPlayer.getOppositeQueen() ) {
+                    for (int newY = 0; newY < HEIGHT; newY++) {
+                        for (int newX = 0; newX < WIDTH; newX++) {
+                            MoveResult result = tryMove(piece, newX, newY);
+                            if (result.getType() == MoveType.NORMAL || result.getType() == MoveType.KILL) {
+                                availableMoves.add(result);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return availableMoves;
+    }
 
     void checkGameOver() {
         int redPieces = 0;
@@ -349,12 +370,12 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
             }
         }
 
-        if (redPieces == 0) {
+        if (redPieces == 0 || checkAvailableMoves(PieceType.RED).isEmpty()) {
             totalCapturedPieces = totalCapturedPieces + 14 + whitePieces;
             gameOver = true;
             displayGameOverMessage("Białe wygrały!");
             saveTotalCapturedPieces(totalCapturedPieces);
-        } else if (whitePieces == 0) {
+        } else if (whitePieces == 0 || checkAvailableMoves(PieceType.WHITE).isEmpty()) {
             totalCapturedPieces = totalCapturedPieces + 14 + redPieces;
             gameOver = true;
             displayGameOverMessage("Czerwone wygrały!");
@@ -571,11 +592,6 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
         }
     }
 
-
-
-
-
-
     public long convertToSeconds(String time) {
         String[] parts = time.split(":");
         long minutes = Long.parseLong(parts[0]);
@@ -589,7 +605,7 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
         if(currentPlayer == PieceType.RED) {
             playerTurn = "Czerwony";
         }
-        else {
+        else if(currentPlayer == PieceType.WHITE ) {
             playerTurn = "Biały";
         }
     }
