@@ -13,7 +13,6 @@ public class StopWatch {
         this.running = false;
     }
 
-    // returns elapsed time in milliseconds
     public long getElapsedTime() {
         long elapsed;
         if (running) {

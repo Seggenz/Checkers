@@ -1,4 +1,6 @@
 import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.scene.Group;
 import javafx.scene.Parent;
@@ -6,26 +8,22 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.util.Duration;
-
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 
-public  class Game {
-
+public class Game {
     public static final int TILE_SIZE = 100;
     public static final int WIDTH = 8; //amount of bars
     public static final int HEIGHT = 8;
@@ -34,53 +32,81 @@ public  class Game {
     protected Timeline timer;
     protected boolean gameOver = false;
     private int totalCapturedPieces = 0;
-
     private StopWatch gameStopWatch = new StopWatch();
-    private Label gameTimerLabel = new Label();
+    private final Label gameTimerLabel = new Label();
     private Timeline moveTimer;
-    private Label moveTimerLabel = new Label();
-
+    private final Label moveTimerLabel = new Label();
     public static String playerTurn = "Biały";
-
-    public MainView mainView;
     File gameTimesFile = new File("src/resources/files/stats.txt");
     protected Tile[][] board = new Tile[WIDTH][HEIGHT];
-    private Group tileGroup = new Group();
+    private final Group tileGroup = new Group();
     protected Group pieceGroup = new Group();
+    public static PieceType currentPlayer = PieceType.WHITE;
     int redPieces = 0;
     int whitePieces = 0;
-
-
+    public MainView mainView;
+    private OnMoveCompleteListener moveCompleteListener;
     public Game() {
-
         this.gameStopWatch = new StopWatch();
     }
+
     public Game(MainView mainView) {
         this.mainView = mainView;
     }
+
     public StopWatch getGameStopWatch() {
         return gameStopWatch;
     }
-    public static PieceType currentPlayer = PieceType.WHITE;
 
-    public interface OnMoveCompleteListener {
+
+    public interface OnMoveCompleteListener { //interfejs uzywany do obserwowania czy wykonano ruch
         void onMoveComplete();
-
     }
-
-    private OnMoveCompleteListener moveCompleteListener;
 
     public void setOnMoveCompleteListener(OnMoveCompleteListener listener) {
         this.moveCompleteListener = listener;
     }
 
-    List<MoveResult> checkAvailableCaptures(PieceType currentPlayer) {
+    public Parent createContent() { //metoda sluzaca do stworzenia planszy
+        Pane root = new Pane();
+        root.setPrefSize(WIDTH * TILE_SIZE, HEIGHT * TILE_SIZE);
+        root.getChildren().addAll(tileGroup, pieceGroup);
+
+        for (int y = 0; y < HEIGHT; y++) {
+            for (int x = 0; x < WIDTH; x++) {
+                Tile tile = new Tile((x + y) % 2 == 0, x, y);
+                board[x][y] = tile;
+
+                tileGroup.getChildren().add(tile);
+
+                Piece piece = null;
+
+                if (y <= 2 && (x + y) % 2 != 0) {
+                    piece = makePiece(PieceType.RED, x, y);
+                }
+                if (y >= 5 && (x + y) % 2 != 0) {
+                    piece = makePiece(PieceType.WHITE, x, y);
+                }
+
+                if (piece != null) {
+                    tile.setPiece(piece);
+                    pieceGroup.getChildren().add(piece);
+                }
+
+
+            }
+        }
+
+        startRandomMoveTimer();
+        return root;
+    }
+    List<MoveResult> checkAvailableCaptures(PieceType currentPlayer) { //sprawdzamy dostępne bicia dla wszystkich pionków naszej drużyny
         List<MoveResult> availableCaptures = new ArrayList<>();
 
         for (int y = 0; y < HEIGHT; y++) {
             for (int x = 0; x < WIDTH; x++) {
                 Piece piece = board[x][y].getPiece();
-                if (piece != null && piece.getType() == currentPlayer || piece != null && piece.getType() == currentPlayer.getOppositeQueen() ) {
+                if (piece != null && piece.getType() == currentPlayer || piece != null && piece.getType() == currentPlayer.getQueen()) {
                     for (int newY = 0; newY < HEIGHT; newY++) {
                         for (int newX = 0; newX < WIDTH; newX++) {
                             MoveResult result = tryMove(piece, newX, newY);
@@ -95,7 +121,8 @@ public  class Game {
 
         return availableCaptures;
     }
-    boolean isCaptureAvailableForPiece(Piece piece) {
+
+    boolean isCaptureAvailableForPiece(Piece piece) { //sprawdzamy czy dostępne jest bicie dla konkretnego piona
         if (piece == null) {
             return false;
         }
@@ -116,126 +143,89 @@ public  class Game {
         return false;
     }
 
-    public Parent createContent() {
+    protected MoveResult tryMove(Piece piece, int newX, int newY) { //sprawdzamy czy możliwy jest taki ruch
 
-        Pane root = new Pane();
-        root.setPrefSize(WIDTH * TILE_SIZE, HEIGHT * TILE_SIZE);
-        root.getChildren().addAll(tileGroup,pieceGroup);
-
-        for (int y = 0; y < HEIGHT; y++) {
-            for(int x = 0; x < WIDTH; x++) {
-                Tile tile = new Tile((x + y) % 2 == 0, x, y);
-                board[x][y] = tile;
-
-                tileGroup.getChildren().add(tile);
-
-                Piece piece = null;
-
-                if (y <= 2 && (x + y) % 2 != 0) {
-                    piece = makePiece(PieceType.RED, x , y);
-                }
-                if (y >= 5 && (x + y) % 2 != 0) {
-                    piece = makePiece(PieceType.WHITE, x , y);
-                }
-
-                if(piece != null) {
-                    tile.setPiece(piece);
-                    pieceGroup.getChildren().add(piece);
-                }
-
-
-            }
+        if (board[newX][newY].hasPiece() || (newX + newY) % 2 == 0) { //jezeli pole ma piona lub nie jest pionem po skosie
+            return new MoveResult(MoveType.NONE);
+        }
+        if (timer != null) { //pomocnicze pole do startowania licznika losowego ruchu
+            timer.stop();
+            startRandomMoveTimer();
         }
 
-        startRandomMoveTimer();
-        return root;
-    }
+        int x0 = toBoard(piece.getOldX()); //poprzednie wspolrzedne figury
+        int y0 = toBoard(piece.getOldY());
 
-protected MoveResult tryMove(Piece piece, int newX, int newY) {
+        boolean isQueen = piece.getType() == PieceType.RED_QUEEN || piece.getType() == PieceType.WHITE_QUEEN;
 
-    if (board[newX][newY].hasPiece() || (newX + newY) % 2 == 0) {
-        return new MoveResult(MoveType.NONE);
-    }
-    if (timer != null) {
-        timer.stop();
-        startRandomMoveTimer();
-    }
-
-    int x0 = toBoard(piece.getOldX());
-    int y0 = toBoard(piece.getOldY());
-
-    boolean isQueen = piece.getType() == PieceType.RED_QUEEN || piece.getType() == PieceType.WHITE_QUEEN;
-
-    if (!isQueen && Math.abs(newX - x0) == 1 && newY - y0 == piece.getType().moveDir) {
-        if (moveCompleteListener != null) {
-            moveCompleteListener.onMoveComplete();
-        }
-        return new MoveResult(MoveType.NORMAL);
-    }
-    else if (isQueen && Math.abs(newX - x0) == Math.abs(newY - y0)) {
-        int dx = newX > x0 ? 1 : -1;
-        int dy = newY > y0 ? 1 : -1;
-        int x1 = x0 + dx;
-        int y1 = y0 + dy;
-        boolean pathBlocked = false;
-        boolean hasKill = false;
-        Piece pieceToKill = null;
-
-        while (x1 != newX || y1 != newY) {
-            if (board[x1][y1].hasPiece()) {
-                if (board[x1][y1].getPiece().getType().getColor() == piece.getType().getColor()) {
-                    pathBlocked = true;
-                    break;
-                } else if (hasKill) {
-                    pathBlocked = true;
-                    break;
-                } else {
-                    hasKill = true;
-                    pieceToKill = board[x1][y1].getPiece();
-                }
-            }
-
-            x1 += dx;
-            y1 += dy;
-        }
-
-        if (!pathBlocked) {
-            if (hasKill) {
-                if (moveCompleteListener != null) {
-                    moveCompleteListener.onMoveComplete();
-                }
-                return new MoveResult(MoveType.KILL, pieceToKill);
-            } else {
-                if (moveCompleteListener != null) {
-                    moveCompleteListener.onMoveComplete();
-                }
-                return new MoveResult(MoveType.NORMAL);
-            }
-        }
-    }
-    else if (!isQueen && Math.abs(newX - x0) == 2 && Math.abs(newY - y0) == 2) {
-        int x1 = x0 + (newX - x0) / 2;
-        int y1 = y0 + (newY - y0) / 2;
-
-        if(board[x1][y1].hasPiece() && board[x1][y1].getPiece().getType().getColor() != piece.getType().getColor()) {
-            if (inCaptureSequence && piece != currentCapturePiece) {
-                return new MoveResult(MoveType.NONE);
-            }
+        if (!isQueen && Math.abs(newX - x0) == 1 && newY - y0 == piece.getType().moveDir) { //nie jestesmy krolowa i jesli odleglosc miedzy stary mi i nowymi wspolrzednymi jest 1 i jest rowna moveDir
             if (moveCompleteListener != null) {
                 moveCompleteListener.onMoveComplete();
             }
-            return new MoveResult(MoveType.KILL, board[x1][y1].getPiece(), true, 1);
+            return new MoveResult(MoveType.NORMAL);
+        } else if (isQueen && Math.abs(newX - x0) == Math.abs(newY - y0)) { //czy jestesmy krolowa i poruszamy sie po skosie
+            int dx = newX > x0 ? 1 : -1;
+            int dy = newY > y0 ? 1 : -1;
+            int x1 = x0 + dx;
+            int y1 = y0 + dy;
+            boolean pathBlocked = false; //zajete przez innego piona
+            boolean hasKill = false; //czy musimy zbic piona
+            Piece pieceToKill = null;
+
+            while (x1 != newX || y1 != newY) { //iterujemy po skosnych polach i sprawdzamy czy musimy zbic krolowa
+                if (board[x1][y1].hasPiece()) {
+                    if (board[x1][y1].getPiece().getType().getColor() == piece.getType().getColor()) {
+                        pathBlocked = true;
+                        break;
+                    } else if (hasKill) {
+                        pathBlocked = true;
+                        break;
+                    } else {
+                        hasKill = true;
+                        pieceToKill = board[x1][y1].getPiece();
+                    }
+                }
+
+                x1 += dx;
+                y1 += dy;
+            }
+
+            if (!pathBlocked) {
+                if (hasKill) {
+                    if (moveCompleteListener != null) {
+                        moveCompleteListener.onMoveComplete();
+                    }
+                    return new MoveResult(MoveType.KILL, pieceToKill); //zwracamy zbicie piona
+                } else {
+                    if (moveCompleteListener != null) {
+                        moveCompleteListener.onMoveComplete();
+                    }
+                    return new MoveResult(MoveType.NORMAL); //zwracamy poruszenie sie piona
+                }
+            }
+        } else if (!isQueen && Math.abs(newX - x0) == 2 && Math.abs(newY - y0) == 2) { //jesli nie jestesmy krolowa i chcemy zbic
+            int x1 = x0 + (newX - x0) / 2; //pozycja figury ktora bedziemy zbijac
+            int y1 = y0 + (newY - y0) / 2;
+
+            if (board[x1][y1].hasPiece() && board[x1][y1].getPiece().getType().getColor() != piece.getType().getColor()) { //czy zawiera figure o przeciwnym kolorze
+                if (inCaptureSequence && piece != currentCapturePiece) {
+                    return new MoveResult(MoveType.NONE);
+                }
+                if (moveCompleteListener != null) {
+                    moveCompleteListener.onMoveComplete();
+                }
+                return new MoveResult(MoveType.KILL, board[x1][y1].getPiece(), true, 1);
+            }
+
         }
 
+        return new MoveResult(MoveType.NONE);
     }
 
-    return new MoveResult(MoveType.NONE);
-}
-
-    protected int toBoard(double pixel) { //returning piece position on tile
-        return (int)(pixel + TILE_SIZE / 2) / TILE_SIZE;
+    protected int toBoard(double pixel) { //przeksztalcanie wartosci pikselowej w pozycje figury na planszy
+        return (int) (pixel + TILE_SIZE / 2) / TILE_SIZE; //dodajemy polowe wartosci kafelka (aby miec jego srodek), nastepnie dzielimy przez wielkosc kafelka dzieki czemu uzyskujemy
+                                                          //pozycje figury na planszy
     }
-
 
 
     private Piece makePiece(PieceType type, int x, int y) {
@@ -249,26 +239,24 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
             int newY = toBoard(piece.getLayoutY());
 
 
-
             List<MoveResult> availableCaptures = checkAvailableCaptures(currentPlayer);
-            boolean captureRequired = !availableCaptures.isEmpty();
+            boolean captureRequired = !availableCaptures.isEmpty(); //jezeli mamy bicia to bicie jest obowiazkowe
 
-            MoveResult result = tryMove(piece,newX,newY);
+            MoveResult result = tryMove(piece, newX, newY); //sprawdzamy ruch
             int x0 = toBoard(piece.getOldX());
             int y0 = toBoard(piece.getOldY());
 
-            if (captureRequired && result.getType() != MoveType.KILL) {
-                piece.abortMove();
+            if (captureRequired && result.getType() != MoveType.KILL) { //jezeli musimy zbic a w tym ruchu nie zbilismy
+                piece.abortMove(); //porzuc ruch
                 return;
             }
 
             switch (result.getType()) {
-
-                case NONE -> {
+                case NONE -> { //zabroniony ruch np na zle pole
                     piece.abortMove();
                     break;
                 }
-                case NORMAL -> {
+                case NORMAL -> { //przejscie na nowe pole
                     piece.move(newX, newY);
                     board[x0][y0].setPiece(null);
                     board[newX][newY].setPiece(piece);
@@ -278,7 +266,6 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
                         moveCompleteListener.onMoveComplete();
                     }
                     checkGameOver();
-
                     break;
                 }
                 case KILL -> {
@@ -287,8 +274,8 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
                     board[newX][newY].setPiece(piece);
 
                     Piece otherPiece = result.getPiece();
-                    board[toBoard(otherPiece.getOldX())][toBoard(otherPiece.getOldY())].setPiece(null);
-                    pieceGroup.getChildren().remove(otherPiece);
+                    board[toBoard(otherPiece.getOldX())][toBoard(otherPiece.getOldY())].setPiece(null); //usuwamy z tablicy planszy zbity pionek
+                    pieceGroup.getChildren().remove(otherPiece); //usuwamy zbity pionek z naszej grupy pinkow
 
                     if (!isCaptureAvailableForPiece(piece)) {
                         currentPlayer = currentPlayer == PieceType.RED ? PieceType.WHITE : PieceType.RED;
@@ -305,12 +292,10 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
         });
 
 
-
         return piece;
 
     }
-
-    void getNumberOfPieces() {
+    void getNumberOfPieces() { //funkcja pomocnicza do wyswietlania ilosci pionkow
         int tx = 0;
         int ty = 0;
         for (int x = 0; x < board.length; x++) {
@@ -327,16 +312,17 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
             }
         }
         redPieces = tx;
-        whitePieces= ty;
+        whitePieces = ty;
 
     }
-    List<MoveResult> checkAvailableMoves(PieceType currentPlayer) {
+
+    List<MoveResult> checkAvailableMoves(PieceType currentPlayer) { //sprawdzamy mozliwe ruchy dla danego gracza
         List<MoveResult> availableMoves = new ArrayList<>();
 
         for (int y = 0; y < HEIGHT; y++) {
             for (int x = 0; x < WIDTH; x++) {
                 Piece piece = board[x][y].getPiece();
-                if (piece != null && piece.getType() == currentPlayer || piece != null && piece.getType() == currentPlayer.getOppositeQueen() ) {
+                if (piece != null && piece.getType() == currentPlayer || piece != null && piece.getType() == currentPlayer.getQueen()) {
                     for (int newY = 0; newY < HEIGHT; newY++) {
                         for (int newX = 0; newX < WIDTH; newX++) {
                             MoveResult result = tryMove(piece, newX, newY);
@@ -352,7 +338,7 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
         return availableMoves;
     }
 
-    void checkGameOver() {
+    void checkGameOver() { //sprawdzamy czy gra sie konczy
         int redPieces = 0;
         int whitePieces = 0;
 
@@ -370,7 +356,7 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
             }
         }
 
-        if (redPieces == 0 || checkAvailableMoves(PieceType.RED).isEmpty()) {
+        if (redPieces == 0 || checkAvailableMoves(PieceType.RED).isEmpty()) { //jesli nie ma pionkow lub pionki nie moga sie poruszyc
             totalCapturedPieces = totalCapturedPieces + 14 + whitePieces;
             gameOver = true;
             displayGameOverMessage("Białe wygrały!");
@@ -391,7 +377,7 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
             int whiteWins = Integer.parseInt(lines.get(2));
             int redWins = Integer.parseInt(lines.get(3));
 
-            if (message.equals("Białe wygrały!")) {
+            if (message.equals("Białe wygrały!")) { //wyswietlamy wiadomosc i zmieniamy statystyki
                 whiteWins++;
                 lines.set(2, String.valueOf(whiteWins));
             } else if (message.equals("Czerwone wygrały!")) {
@@ -414,7 +400,6 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
 
             Optional<ButtonType> result = alert.showAndWait();
             if (result.get() == okButtonType) {
-                // Powrót do menu głównego
                 try {
                     mainView.buildMenuUI();
                 } catch (IOException e) {
@@ -423,28 +408,30 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
             }
         });
     }
+
     public void makeRandomMove() {
-        List<Piece> pieces = pieceGroup.getChildren().stream()
-                .filter(p -> p instanceof Piece)
-                .map(p -> (Piece) p)
+        //tworzymy liste pionkow nalezacych do aktualnego gracza
+        List<Piece> pieces = pieceGroup.getChildren().stream() //tworzymy z naszej grupy strumien
+                .filter(p -> p instanceof Piece) //filtrujemy elementy strumienia
+                .map(p -> (Piece) p) //mapujemy nasz element na klase Piece
                 .filter(p -> p.getType().getColor() == currentPlayer.getColor())
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()); //tworzymy liste z dostepnych figur
 
         List<MoveResult> availableCaptures = checkAvailableCaptures(currentPlayer);
         boolean captureRequired = !availableCaptures.isEmpty();
 
-        Random random = new Random();
+        Random random = new Random(); //tworzymy obiekt klasy random ktory przyda sie do generowania losowych wartosci
 
         while (!pieces.isEmpty()) {
-            Piece piece = pieces.get(random.nextInt(pieces.size()));
+            Piece piece = pieces.get(random.nextInt(pieces.size())); //losujemy losowa liczbe od 0 do wielkosci listy i przypisujemy ten pionek do naszego obiektu
 
-            List<MoveResult> validMoves = new ArrayList<>();
-            List<Integer> validMovesNewX = new ArrayList<>();
+            List<MoveResult> validMoves = new ArrayList<>(); //przechowujemy dostepne ruchy
+            List<Integer> validMovesNewX = new ArrayList<>(); //i ich nowe wspolrzedne
             List<Integer> validMovesNewY = new ArrayList<>();
             for (int newX = 0; newX < WIDTH; newX++) {
                 for (int newY = 0; newY < HEIGHT; newY++) {
                     MoveResult result = tryMove(piece, newX, newY);
-                    if (result.getType() != MoveType.NONE && (!captureRequired || result.getType() == MoveType.KILL)) {
+                    if (result.getType() != MoveType.NONE && (!captureRequired || result.getType() == MoveType.KILL)) { //sprawdzamy czy czy jest mozliwe bicie
                         validMoves.add(result);
                         validMovesNewX.add(newX);
                         validMovesNewY.add(newY);
@@ -454,12 +441,12 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
 
             if (!validMoves.isEmpty()) {
                 int index = random.nextInt(validMoves.size());
-                MoveResult chosenMove = validMoves.get(index);
+                MoveResult chosenMove = validMoves.get(index); //losujemy ruch dla naszego pionka
                 int newX = validMovesNewX.get(index);
                 int newY = validMovesNewY.get(index);
                 int x0 = toBoard(piece.getOldX());
                 int y0 = toBoard(piece.getOldY());
-                board[x0][y0].setPiece(null);  // Usunięcie pionka z poprzedniego pola
+                board[x0][y0].setPiece(null);  // usuwamy pionka z poprzedniego pola
                 piece.move(newX, newY);
                 board[newX][newY].setPiece(piece);
                 if (chosenMove.getType() == MoveType.KILL) {
@@ -528,17 +515,17 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
         gameStopWatch.stop();
         updateGameTimerLabel();
 
-        long gameDuration = gameStopWatch.getElapsedTime() / 1000;  // Game duration in seconds
+        long gameDuration = gameStopWatch.getElapsedTime() / 1000;  // dlugosc gry w sekundach
         long[] times = readGameTimesFromFile();
 
         if (gameDuration < times[0]) {
-            times[0] = gameDuration;  // Update shortest time
+            times[0] = gameDuration;  // aktualizujemy najkrotszy czas gry
         }
         if (gameDuration > times[1]) {
-            times[1] = gameDuration;  // Update longest time
+            times[1] = gameDuration;  // aktualizujemy najdluzszy czas gry
         }
 
-        // Update the game times file
+        // aktualizujemy czasy gry w pliku
         try {
             Path path = Paths.get(gameTimesFile.toURI());
             List<String> lines = Files.readAllLines(path);
@@ -546,9 +533,8 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
                 lines.set(0, String.format("%02d:%02d", times[0] / 60, times[0] % 60));
                 lines.set(1, String.format("%02d:%02d", times[1] / 60, times[1] % 60));
                 Files.write(path, lines);
-            } else {
-                // Add error handling here
             }
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -561,29 +547,29 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
 
             if (lines.size() >= 2) {
                 long[] times = new long[2];
-                times[0] = convertToSeconds(lines.get(0));  // Shortest time
-                times[1] = convertToSeconds(lines.get(1));  // Longest time
+                times[0] = convertToSeconds(lines.get(0));  // najkrotszy czas
+                times[1] = convertToSeconds(lines.get(1));  // najdluzszy czas
                 return times;
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        // Return default times if reading from the file fails
+
         return new long[]{Long.MAX_VALUE, 0};
     }
+
     private void saveTotalCapturedPieces(int capturedPieces) {
         try {
             Path path = Paths.get(gameTimesFile.toURI());
             List<String> lines = Files.readAllLines(path);
 
-            if (lines.size() >= 5) {  // Make sure the line exists
-                int totalCapturedPieces = Integer.parseInt(lines.get(4));  // Assuming the 5th line is the total number of captured pieces
+            if (lines.size() >= 5) {
+                int totalCapturedPieces = Integer.parseInt(lines.get(4));
                 totalCapturedPieces += capturedPieces;
-                lines.set(4, String.valueOf(totalCapturedPieces));  // Update the value in the list
-                Files.write(path, lines);  // Write back the list to the file
+                lines.set(4, String.valueOf(totalCapturedPieces));
+                Files.write(path, lines);
             } else {
-                // If the line does not exist, append a new line with the current game's captured pieces
                 lines.add(String.valueOf(capturedPieces));
                 Files.write(path, lines, StandardOpenOption.APPEND);
             }
@@ -600,18 +586,16 @@ protected MoveResult tryMove(Piece piece, int newX, int newY) {
     }
 
 
-
     private void updatePlayerTurnLabel() {
-        if(currentPlayer == PieceType.RED) {
+        if (currentPlayer == PieceType.RED) {
             playerTurn = "Czerwony";
-        }
-        else if(currentPlayer == PieceType.WHITE ) {
+        } else if (currentPlayer == PieceType.WHITE) {
             playerTurn = "Biały";
         }
     }
 
     public PieceType getPlayerTurn() {
-        return  currentPlayer;
+        return currentPlayer;
     }
 
 }

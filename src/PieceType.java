@@ -9,7 +9,7 @@ public enum PieceType {
         this.moveDir = moveDir;
     }
 
-    public PieceType getOppositeQueen() {
+    public PieceType getQueen() {
         switch (this) {
             case RED:
                 return RED_QUEEN;

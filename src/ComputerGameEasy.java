@@ -3,7 +3,6 @@ import javafx.animation.Timeline;
 import javafx.util.Duration;
 
 public class ComputerGameEasy extends Game {
-
     private StopWatch gameStopWatch = new StopWatch();
     public MainView mainView;
 

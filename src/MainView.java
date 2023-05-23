@@ -9,7 +9,6 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
@@ -73,7 +72,7 @@ public class MainView {
     }
 
     public void buildMenuUI() throws IOException {
-        Parent root = FXMLLoader.load(getClass().getResource("resources/view/Main.fxml"));
+        Parent root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("resources/view/Main.fxml")));
         scene = new Scene(root);
         scene.getStylesheets().add("resources/css/style.css");
         stage.setScene(scene);
@@ -82,7 +81,7 @@ public class MainView {
     @FXML
     private void startPVPGame(ActionEvent event) {
         gamePVP = new Game(this);
-        Node source = (Node) event.getSource();
+        Node source = (Node) event.getSource(); //wyswietlanie w tym samym oknie
         stage = (Stage) source.getScene().getWindow();
         buildGameUI(gamePVP);
         startMoveTimer();
@@ -90,7 +89,6 @@ public class MainView {
         if (gamePVP.gameOver) {
             gamePVP.setOnMoveCompleteListener(this::stopTimer);
         }
-
     }
     @FXML
     private void startPVEGame(ActionEvent event) {
@@ -112,18 +110,14 @@ public class MainView {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        // Utwórz nowe okno
         Stage statisticsStage = new Stage();
 
-        // Utwórz etykiety do wyświetlania statystyk
         Label longestGameLabel = new Label("Najkrótszy mecz: " + stats.get(0));
         Label shortestGameLabel = new Label("Najdłuższy mecz: " + stats.get(1));
         Label redWinsLabel = new Label("Liczba wygranych meczy przez białą drużynę: " + stats.get(2));
         Label whiteWinsLabel = new Label("Liczba wygranych meczy przez czerwoną drużynę: " + stats.get(3));
         Label totalPiecesTakenLabel = new Label("Liczba sumarycznie zbitych pionów: " + stats.get(4));
 
-
-        // Dodaj etykiety do kontenera VBox
         VBox statisticsVBox = new VBox(
                 longestGameLabel,
                 shortestGameLabel,
@@ -133,10 +127,9 @@ public class MainView {
         );
         statisticsVBox.setSpacing(10);
 
-        // Utwórz nową scenę
         Scene scene = new Scene(statisticsVBox, 500, 200);
         scene.getStylesheets().add("resources/css/style.css");
-        // Ustaw scenę dla okna i wyświetl okno
+
         statisticsStage.setScene(scene);
         statisticsStage.getIcons().add(icon);
         statisticsStage.setTitle("Statystyki");
@@ -144,7 +137,7 @@ public class MainView {
     }
 
     private void buildGameUI(Game game) {
-        // Utworzenie komponentów interfejsu użytkownika
+
         currentPlayerLabel = new Label();
         currentPlayerLabel.setFont(new Font("Lucida Console", 24));
         whitePiecesLabel = new Label();
@@ -171,7 +164,7 @@ public class MainView {
         timeBox.setSpacing(10);
         timeBox.setMinWidth(250);
 
-        moveTimerLabel = new Label("00:30"); // Tymczasowo ustawiamy tekst na "00:30"
+        moveTimerLabel = new Label("00:30");
         moveTimerLabel.setFont(new Font("Lucida Console", 24));
 
         ImageView imageView2 = new ImageView(image_hourglass);
@@ -181,7 +174,6 @@ public class MainView {
         hbox2.setSpacing(10);
         hbox2.setAlignment(Pos.CENTER);
 
-        // Dodajemy etykietę licznika czasu na ruch do VBoxa
         timeBox.getChildren().add(hbox2);
 
         VBox piecesBox = new VBox(whitePiecesLabel, redPiecesLabel);
@@ -192,7 +184,6 @@ public class MainView {
         AnchorPane bottom = new AnchorPane();
         bottom.setMinHeight(50);
 
-        // Konfiguracja głównego panelu
         root = new BorderPane();
         root.setCenter(game.createContent());
         root.setTop(infoBox);
@@ -200,15 +191,12 @@ public class MainView {
         root.setRight(piecesBox);
         root.setBottom(bottom);
 
-
-        // Aktualizacja interfejsu użytkownika
         updateCurrentPlayerLabel(game);
 
-        // Uruchamianie zegarów
         StopWatch gameStopWatch = game.getGameStopWatch();
         gameStopWatch.start();
 
-        AtomicReference<Timeline> pvpTimelineRef = new AtomicReference<>();
+        AtomicReference<Timeline> pvpTimelineRef = new AtomicReference<>(); //tworzymy obiekt AtomicReference po to aby operacje na tym zegarze byly bezpieczne
         pvpTimelineRef.set(new Timeline(new KeyFrame(Duration.seconds(1), e -> {
             long elapsedTime = gameStopWatch.getElapsedTime();
             GameTimeLabel.setText(formatElapsedTime(elapsedTime));
@@ -218,7 +206,7 @@ public class MainView {
             }
         })));
 
-        Timeline currentPlayerTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
+        Timeline currentPlayerTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> { //aktualizacja napisu ktorego gracza teraz kolej
             updateCurrentPlayerLabel(game);
         }));
         currentPlayerTimeline.setCycleCount(Timeline.INDEFINITE);
@@ -228,19 +216,18 @@ public class MainView {
         pvpTimeline.setCycleCount(Timeline.INDEFINITE);
         pvpTimeline.play();
 
-        Timeline piecesTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
+        Timeline piecesTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> { //aktualizacja napisu ilosci pionow
             game.getNumberOfPieces();
             updatePiecesLabels(game);
         }));
         piecesTimeline.setCycleCount(Timeline.INDEFINITE);
         piecesTimeline.play();
 
-        // Konfiguracja i wyświetlanie sceny
         Scene gameScene = new Scene(root);
         gameScene.getStylesheets().add("resources/css/style.css");
         Font.loadFont(getClass().getResourceAsStream("src/resources/fonts/Montserrat-Regular.ttf"), 20);
 
-        gameScene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+        gameScene.addEventFilter(KeyEvent.KEY_PRESSED, event -> { // powrot do menu poprzez wcisniecie przycisku escape
             if (event.getCode() == KeyCode.ESCAPE) {
                 Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
                 alert.setTitle("Wyjście do menu");
@@ -258,22 +245,19 @@ public class MainView {
         });
 
         root.requestFocus();
-
         stage.setResizable(false);
         stage.setTitle("Checkers");
         stage.setScene(gameScene);
         stage.show();
     }
 
-    // Ta metoda konwertuje czas w milisekundach na format MM:SS
-    private String formatElapsedTime(long millis) {
+    private String formatElapsedTime(long millis) { //formatujemy miniony czas
         long minutes = (millis / 1000) / 60;
         long seconds = (millis / 1000) % 60;
         return String.format("%02d:%02d", minutes, seconds);
     }
 
     public void updateCurrentPlayerLabel(Game game) {
-        // Zakładamy, że metoda getPlayerTurn() zwraca aktualnego gracza
         String currentPlayer = game.getPlayerTurn().toString();
         if(Objects.equals(currentPlayer, "WHITE")) {
             currentPlayer = "Biały";
@@ -285,7 +269,6 @@ public class MainView {
     }
 
     public void updatePiecesLabels(Game game) {
-        // Zakładamy, że metody getNumberOfWhitePieces() i getNumberOfBlackPieces() zwracają liczbę białych i czarnych pionków
         int whitePieces = game.whitePieces;
         int redPieces = game.redPieces;
 
@@ -296,15 +279,13 @@ public class MainView {
     }
 
     private void startMoveTimer() {
-        // Sprawdzamy, czy mamy już aktywny licznik
+
         if (moveTimer != null) {
             moveTimer.stop();
         }
 
-        // Ustawiamy czas na wartość początkową
-        moveTime = 30 * 1000; // 30 sekund w milisekundach
+        moveTime = 30 * 1000;
 
-        // Utworzenie nowego licznika
         moveTimer = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
             moveTime -= 1000; // Odejmujemy sekundę
             moveTimerLabel.setText(formatElapsedTime(moveTime));
@@ -322,7 +303,6 @@ public class MainView {
             moveTimer.stop();
         }
 
-        // sprawdź, czy gra się zakończyła
         if (gamePVP != null && gamePVP.gameOver) {
             stopTimer();
             return;
@@ -332,12 +312,10 @@ public class MainView {
             return;
         }
 
-        // Ustawiamy czas na wartość początkową
-        moveTime = 30 * 1000; // 30 sekund w milisekundach
+        moveTime = 30 * 1000;
 
-        // Utworzenie nowego licznika
         moveTimer = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
-            moveTime -= 1000; // Odejmujemy sekundę
+            moveTime -= 1000;
             moveTimerLabel.setText(formatElapsedTime(moveTime));
             if (moveTime <= 0) {
                 moveTimer.stop();

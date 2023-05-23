@@ -8,8 +8,7 @@ import javafx.scene.shape.Ellipse;
 public class Piece extends StackPane {
 
     private PieceType type;
-//    private PieceType currentPlayer;
-    private ImageView crown;
+    private final ImageView crown;
     private double mouseX, mouseY;
     private double oldX, oldY;
 
@@ -24,10 +23,6 @@ public class Piece extends StackPane {
         return type;
     }
 
-
-
-
-
     public double getOldX() {
         return oldX;
     }
@@ -38,7 +33,6 @@ public class Piece extends StackPane {
 
     public Piece(PieceType type, int x, int y) {
         this.type = type;
-//        this.currentPlayer = currentPlayer;
 
         crown = new ImageView(new Image("resources/images/crown.png"));
         crown.setFitHeight(Game.TILE_SIZE * 0.6);
