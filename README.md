@@ -1,5 +1,5 @@
 # Checkers in Java
-![GIF Recording 2023-11-11 at 3 59 00 PM](https://github.com/Seggenz/Checkers/assets/22409708/b92b14c9-2d58-4bfd-97a9-4472b87aaa32)
+![GIF Recording 2023-11-11 at 3 59 00 PM](https://github.com/Seggenz/Checkers/assets/22409708/4e18e48e-0550-442b-bbaf-9ee3b39feee7)
 ## Modes
 Game has two modes:
 * Play with another human: A simple and popular checkers game for two players on the same computer. Players take turns moving their pieces.
