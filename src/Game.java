@@ -59,7 +59,7 @@ public class Game {
     }
 
 
-    public interface OnMoveCompleteListener { //interfejs uzywany do obserwowania czy wykonano ruch
+    public interface OnMoveCompleteListener {// interface used for observing whether a move is completed
         void onMoveComplete();
     }
 
@@ -67,7 +67,7 @@ public class Game {
         this.moveCompleteListener = listener;
     }
 
-    public Parent createContent() { //metoda sluzaca do stworzenia planszy
+    public Parent createContent() { // method for creating the game board
         Pane root = new Pane();
         root.setPrefSize(WIDTH * TILE_SIZE, HEIGHT * TILE_SIZE);
         root.getChildren().addAll(tileGroup, pieceGroup);
@@ -100,13 +100,13 @@ public class Game {
         startRandomMoveTimer();
         return root;
     }
-    List<MoveResult> checkAvailableCaptures(PieceType currentPlayer) { //sprawdzamy dostępne bicia dla wszystkich pionków naszej drużyny
+    List<MoveResult> checkAvailableCaptures(PieceType currentPlayer) { // checking available captures for all pieces of our team
         List<MoveResult> availableCaptures = new ArrayList<>();
 
         for (int y = 0; y < HEIGHT; y++) {
             for (int x = 0; x < WIDTH; x++) {
                 Piece piece = board[x][y].getPiece();
-                if (piece != null && piece.getType() == currentPlayer || piece != null && piece.getType() == currentPlayer.getQueen()) {
+                if (piece != null && (piece.getType() == currentPlayer || (piece != null && piece.getType() == currentPlayer.getQueen()))) {
                     for (int newY = 0; newY < HEIGHT; newY++) {
                         for (int newX = 0; newX < WIDTH; newX++) {
                             MoveResult result = tryMove(piece, newX, newY);
@@ -122,7 +122,7 @@ public class Game {
         return availableCaptures;
     }
 
-    boolean isCaptureAvailableForPiece(Piece piece) { //sprawdzamy czy dostępne jest bicie dla konkretnego piona
+    boolean isCaptureAvailableForPiece(Piece piece) { // checking if there is a capture available for a specific piece
         if (piece == null) {
             return false;
         }
@@ -143,36 +143,36 @@ public class Game {
         return false;
     }
 
-    protected MoveResult tryMove(Piece piece, int newX, int newY) { //sprawdzamy czy możliwy jest taki ruch
+    protected MoveResult tryMove(Piece piece, int newX, int newY) { // checking if such a move is possible
 
-        if (board[newX][newY].hasPiece() || (newX + newY) % 2 == 0) { //jezeli pole ma piona lub nie jest pionem po skosie
+        if (board[newX][newY].hasPiece() || (newX + newY) % 2 == 0) { // if the square has a piece or is not a diagonal square
             return new MoveResult(MoveType.NONE);
         }
-        if (timer != null) { //pomocnicze pole do startowania licznika losowego ruchu
+        if (timer != null) { // helper field to start the random move timer
             timer.stop();
             startRandomMoveTimer();
         }
 
-        int x0 = toBoard(piece.getOldX()); //poprzednie wspolrzedne figury
+        int x0 = toBoard(piece.getOldX()); // previous coordinates of the piece
         int y0 = toBoard(piece.getOldY());
 
         boolean isQueen = piece.getType() == PieceType.RED_QUEEN || piece.getType() == PieceType.WHITE_QUEEN;
 
-        if (!isQueen && Math.abs(newX - x0) == 1 && newY - y0 == piece.getType().moveDir) { //nie jestesmy krolowa i jesli odleglosc miedzy stary mi i nowymi wspolrzednymi jest 1 i jest rowna moveDir
+        if (!isQueen && Math.abs(newX - x0) == 1 && newY - y0 == piece.getType().moveDir) { // if we are not a queen and the distance between old and new coordinates is 1 and equals moveDir
             if (moveCompleteListener != null) {
                 moveCompleteListener.onMoveComplete();
             }
             return new MoveResult(MoveType.NORMAL);
-        } else if (isQueen && Math.abs(newX - x0) == Math.abs(newY - y0)) { //czy jestesmy krolowa i poruszamy sie po skosie
+        } else if (isQueen && Math.abs(newX - x0) == Math.abs(newY - y0)) { // if we are a queen and move diagonally
             int dx = newX > x0 ? 1 : -1;
             int dy = newY > y0 ? 1 : -1;
             int x1 = x0 + dx;
             int y1 = y0 + dy;
-            boolean pathBlocked = false; //zajete przez innego piona
-            boolean hasKill = false; //czy musimy zbic piona
+            boolean pathBlocked = false; // occupied by another piece
+            boolean hasKill = false; // whether we need to capture a piece
             Piece pieceToKill = null;
 
-            while (x1 != newX || y1 != newY) { //iterujemy po skosnych polach i sprawdzamy czy musimy zbic krolowa
+            while (x1 != newX || y1 != newY) { // iterate over diagonal squares and check if we need to capture a queen
                 if (board[x1][y1].hasPiece()) {
                     if (board[x1][y1].getPiece().getType().getColor() == piece.getType().getColor()) {
                         pathBlocked = true;
@@ -195,19 +195,19 @@ public class Game {
                     if (moveCompleteListener != null) {
                         moveCompleteListener.onMoveComplete();
                     }
-                    return new MoveResult(MoveType.KILL, pieceToKill); //zwracamy zbicie piona
+                    return new MoveResult(MoveType.KILL, pieceToKill); // return capturing the piece
                 } else {
                     if (moveCompleteListener != null) {
                         moveCompleteListener.onMoveComplete();
                     }
-                    return new MoveResult(MoveType.NORMAL); //zwracamy poruszenie sie piona
+                    return new MoveResult(MoveType.NORMAL); // return moving the piece
                 }
             }
-        } else if (!isQueen && Math.abs(newX - x0) == 2 && Math.abs(newY - y0) == 2) { //jesli nie jestesmy krolowa i chcemy zbic
-            int x1 = x0 + (newX - x0) / 2; //pozycja figury ktora bedziemy zbijac
+        } else if (!isQueen && Math.abs(newX - x0) == 2 && Math.abs(newY - y0) == 2) { // if we are not a queen and want to capture
+            int x1 = x0 + (newX - x0) / 2; // position of the piece we will capture
             int y1 = y0 + (newY - y0) / 2;
 
-            if (board[x1][y1].hasPiece() && board[x1][y1].getPiece().getType().getColor() != piece.getType().getColor()) { //czy zawiera figure o przeciwnym kolorze
+            if (board[x1][y1].hasPiece() && board[x1][y1].getPiece().getType().getColor() != piece.getType().getColor()) { // if it contains a piece of a different color
                 if (inCaptureSequence && piece != currentCapturePiece) {
                     return new MoveResult(MoveType.NONE);
                 }
@@ -216,18 +216,14 @@ public class Game {
                 }
                 return new MoveResult(MoveType.KILL, board[x1][y1].getPiece(), true, 1);
             }
-
         }
 
         return new MoveResult(MoveType.NONE);
     }
 
-    protected int toBoard(double pixel) { //przeksztalcanie wartosci pikselowej w pozycje figury na planszy
-        return (int) (pixel + TILE_SIZE / 2) / TILE_SIZE; //dodajemy polowe wartosci kafelka (aby miec jego srodek), nastepnie dzielimy przez wielkosc kafelka dzieki czemu uzyskujemy
-                                                          //pozycje figury na planszy
+    protected int toBoard(double pixel) { // converting pixel value to piece position on the board
+        return (int) (pixel + TILE_SIZE / 2) / TILE_SIZE; // add half the tile value (to have its center), then divide by the tile size to get the piece position on the board
     }
-
-
     private Piece makePiece(PieceType type, int x, int y) {
         Piece piece = new Piece(type, x, y);
 
@@ -238,29 +234,28 @@ public class Game {
             int newX = toBoard(piece.getLayoutX());
             int newY = toBoard(piece.getLayoutY());
 
-
             List<MoveResult> availableCaptures = checkAvailableCaptures(currentPlayer);
-            boolean captureRequired = !availableCaptures.isEmpty(); //jezeli mamy bicia to bicie jest obowiazkowe
+            boolean captureRequired = !availableCaptures.isEmpty(); // if captures are available, capturing is mandatory
 
-            MoveResult result = tryMove(piece, newX, newY); //sprawdzamy ruch
+            MoveResult result = tryMove(piece, newX, newY); // check the move
             int x0 = toBoard(piece.getOldX());
             int y0 = toBoard(piece.getOldY());
 
-            if (captureRequired && result.getType() != MoveType.KILL) { //jezeli musimy zbic a w tym ruchu nie zbilismy
-                piece.abortMove(); //porzuc ruch
+            if (captureRequired && result.getType() != MoveType.KILL) { // if we need to capture and didn't capture in this move
+                piece.abortMove(); // discard the move
                 return;
             }
 
             switch (result.getType()) {
-                case NONE -> { //zabroniony ruch np na zle pole
+                case NONE -> { // forbidden move, e.g., to an invalid square
                     piece.abortMove();
                     break;
                 }
-                case NORMAL -> { //przejscie na nowe pole
+                case NORMAL -> { // move to a new square
                     piece.move(newX, newY);
                     board[x0][y0].setPiece(null);
                     board[newX][newY].setPiece(piece);
-                    currentPlayer = currentPlayer == PieceType.RED ? PieceType.WHITE : PieceType.RED;
+                    currentPlayer = (currentPlayer == PieceType.RED) ? PieceType.WHITE : PieceType.RED;
                     updatePlayerTurnLabel();
                     if (moveCompleteListener != null) {
                         moveCompleteListener.onMoveComplete();
@@ -274,11 +269,11 @@ public class Game {
                     board[newX][newY].setPiece(piece);
 
                     Piece otherPiece = result.getPiece();
-                    board[toBoard(otherPiece.getOldX())][toBoard(otherPiece.getOldY())].setPiece(null); //usuwamy z tablicy planszy zbity pionek
-                    pieceGroup.getChildren().remove(otherPiece); //usuwamy zbity pionek z naszej grupy pinkow
+                    board[toBoard(otherPiece.getOldX())][toBoard(otherPiece.getOldY())].setPiece(null); // remove the captured piece from the board array
+                    pieceGroup.getChildren().remove(otherPiece); // remove the captured piece from our piece group
 
                     if (!isCaptureAvailableForPiece(piece)) {
-                        currentPlayer = currentPlayer == PieceType.RED ? PieceType.WHITE : PieceType.RED;
+                        currentPlayer = (currentPlayer == PieceType.RED) ? PieceType.WHITE : PieceType.RED;
                     }
                     updatePlayerTurnLabel();
                     if (moveCompleteListener != null) {
@@ -291,38 +286,36 @@ public class Game {
             startRandomMoveTimer();
         });
 
-
         return piece;
-
     }
-    void getNumberOfPieces() { //funkcja pomocnicza do wyswietlania ilosci pionkow
-        int tx = 0;
-        int ty = 0;
+
+    void getNumberOfPieces() { // helper function to display the number of pieces
+        int redCount = 0;
+        int whiteCount = 0;
         for (int x = 0; x < board.length; x++) {
             for (int y = 0; y < board[x].length; y++) {
                 Tile tile = board[x][y];
                 if (tile.hasPiece()) {
                     PieceType type = tile.getPiece().getType();
                     if (type == PieceType.RED || type == PieceType.RED_QUEEN) {
-                        tx++;
+                        redCount++;
                     } else if (type == PieceType.WHITE || type == PieceType.WHITE_QUEEN) {
-                        ty++;
+                        whiteCount++;
                     }
                 }
             }
         }
-        redPieces = tx;
-        whitePieces = ty;
-
+        redPieces = redCount;
+        whitePieces = whiteCount;
     }
 
-    List<MoveResult> checkAvailableMoves(PieceType currentPlayer) { //sprawdzamy mozliwe ruchy dla danego gracza
+    List<MoveResult> checkAvailableMoves(PieceType currentPlayer) { // check possible moves for a given player
         List<MoveResult> availableMoves = new ArrayList<>();
 
         for (int y = 0; y < HEIGHT; y++) {
             for (int x = 0; x < WIDTH; x++) {
                 Piece piece = board[x][y].getPiece();
-                if (piece != null && piece.getType() == currentPlayer || piece != null && piece.getType() == currentPlayer.getQueen()) {
+                if (piece != null && (piece.getType() == currentPlayer || (piece != null && piece.getType() == currentPlayer.getQueen()))) {
                     for (int newY = 0; newY < HEIGHT; newY++) {
                         for (int newX = 0; newX < WIDTH; newX++) {
                             MoveResult result = tryMove(piece, newX, newY);
@@ -338,9 +331,9 @@ public class Game {
         return availableMoves;
     }
 
-    void checkGameOver() { //sprawdzamy czy gra sie konczy
-        int redPieces = 0;
-        int whitePieces = 0;
+    void checkGameOver() { // check if the game is over
+        int redCount = 0;
+        int whiteCount = 0;
 
         for (int x = 0; x < board.length; x++) {
             for (int y = 0; y < board[x].length; y++) {
@@ -348,27 +341,26 @@ public class Game {
                 if (tile.hasPiece()) {
                     PieceType type = tile.getPiece().getType();
                     if (type == PieceType.RED || type == PieceType.RED_QUEEN) {
-                        redPieces++;
+                        redCount++;
                     } else if (type == PieceType.WHITE || type == PieceType.WHITE_QUEEN) {
-                        whitePieces++;
+                        whiteCount++;
                     }
                 }
             }
         }
 
-        if (redPieces == 0 || checkAvailableMoves(PieceType.RED).isEmpty()) { //jesli nie ma pionkow lub pionki nie moga sie poruszyc
-            totalCapturedPieces = totalCapturedPieces + 14 + whitePieces;
+        if (redCount == 0 || checkAvailableMoves(PieceType.RED).isEmpty()) { // if there are no red pieces or red pieces cannot move
+            totalCapturedPieces += 14 + whiteCount;
             gameOver = true;
-            displayGameOverMessage("Białe wygrały!");
+            displayGameOverMessage("White wins!");
             saveTotalCapturedPieces(totalCapturedPieces);
-        } else if (whitePieces == 0 || checkAvailableMoves(PieceType.WHITE).isEmpty()) {
-            totalCapturedPieces = totalCapturedPieces + 14 + redPieces;
+        } else if (whiteCount == 0 || checkAvailableMoves(PieceType.WHITE).isEmpty()) {
+            totalCapturedPieces += 14 + redCount;
             gameOver = true;
-            displayGameOverMessage("Czerwone wygrały!");
+            displayGameOverMessage("Red wins!");
             saveTotalCapturedPieces(totalCapturedPieces);
         }
     }
-
     private void displayGameOverMessage(String message) {
         stopGameTimer();
         try {
@@ -377,10 +369,10 @@ public class Game {
             int whiteWins = Integer.parseInt(lines.get(2));
             int redWins = Integer.parseInt(lines.get(3));
 
-            if (message.equals("Białe wygrały!")) { //wyswietlamy wiadomosc i zmieniamy statystyki
+            if (message.equals("White wins!")) {
                 whiteWins++;
                 lines.set(2, String.valueOf(whiteWins));
-            } else if (message.equals("Czerwone wygrały!")) {
+            } else if (message.equals("Red wins!")) {
                 redWins++;
                 lines.set(3, String.valueOf(redWins));
             }
@@ -410,28 +402,27 @@ public class Game {
     }
 
     public void makeRandomMove() {
-        //tworzymy liste pionkow nalezacych do aktualnego gracza
-        List<Piece> pieces = pieceGroup.getChildren().stream() //tworzymy z naszej grupy strumien
-                .filter(p -> p instanceof Piece) //filtrujemy elementy strumienia
-                .map(p -> (Piece) p) //mapujemy nasz element na klase Piece
+        List<Piece> pieces = pieceGroup.getChildren().stream()
+                .filter(p -> p instanceof Piece)
+                .map(p -> (Piece) p)
                 .filter(p -> p.getType().getColor() == currentPlayer.getColor())
-                .collect(Collectors.toList()); //tworzymy liste z dostepnych figur
+                .collect(Collectors.toList());
 
         List<MoveResult> availableCaptures = checkAvailableCaptures(currentPlayer);
         boolean captureRequired = !availableCaptures.isEmpty();
 
-        Random random = new Random(); //tworzymy obiekt klasy random ktory przyda sie do generowania losowych wartosci
+        Random random = new Random();
 
         while (!pieces.isEmpty()) {
-            Piece piece = pieces.get(random.nextInt(pieces.size())); //losujemy losowa liczbe od 0 do wielkosci listy i przypisujemy ten pionek do naszego obiektu
+            Piece piece = pieces.get(random.nextInt(pieces.size()));
 
-            List<MoveResult> validMoves = new ArrayList<>(); //przechowujemy dostepne ruchy
-            List<Integer> validMovesNewX = new ArrayList<>(); //i ich nowe wspolrzedne
+            List<MoveResult> validMoves = new ArrayList<>();
+            List<Integer> validMovesNewX = new ArrayList<>();
             List<Integer> validMovesNewY = new ArrayList<>();
             for (int newX = 0; newX < WIDTH; newX++) {
                 for (int newY = 0; newY < HEIGHT; newY++) {
                     MoveResult result = tryMove(piece, newX, newY);
-                    if (result.getType() != MoveType.NONE && (!captureRequired || result.getType() == MoveType.KILL)) { //sprawdzamy czy czy jest mozliwe bicie
+                    if (result.getType() != MoveType.NONE && (!captureRequired || result.getType() == MoveType.KILL)) {
                         validMoves.add(result);
                         validMovesNewX.add(newX);
                         validMovesNewY.add(newY);
@@ -441,12 +432,12 @@ public class Game {
 
             if (!validMoves.isEmpty()) {
                 int index = random.nextInt(validMoves.size());
-                MoveResult chosenMove = validMoves.get(index); //losujemy ruch dla naszego pionka
+                MoveResult chosenMove = validMoves.get(index);
                 int newX = validMovesNewX.get(index);
                 int newY = validMovesNewY.get(index);
                 int x0 = toBoard(piece.getOldX());
                 int y0 = toBoard(piece.getOldY());
-                board[x0][y0].setPiece(null);  // usuwamy pionka z poprzedniego pola
+                board[x0][y0].setPiece(null);
                 piece.move(newX, newY);
                 board[newX][newY].setPiece(piece);
                 if (chosenMove.getType() == MoveType.KILL) {
@@ -462,12 +453,12 @@ public class Game {
                     if (!isCaptureAvailableForPiece(piece)) {
                         inCaptureSequence = false;
                         currentCapturePiece = null;
-                        currentPlayer = currentPlayer == PieceType.RED ? PieceType.WHITE : PieceType.RED;
+                        currentPlayer = (currentPlayer == PieceType.RED) ? PieceType.WHITE : PieceType.RED;
                     }
                 } else {
                     inCaptureSequence = false;
                     currentCapturePiece = null;
-                    currentPlayer = currentPlayer == PieceType.RED ? PieceType.WHITE : PieceType.RED;
+                    currentPlayer = (currentPlayer == PieceType.RED) ? PieceType.WHITE : PieceType.RED;
                     if (moveCompleteListener != null) {
                         moveCompleteListener.onMoveComplete();
                     }
@@ -479,7 +470,6 @@ public class Game {
 
         }
     }
-
 
     public void startRandomMoveTimer() {
         if (moveTimer != null) {
@@ -515,17 +505,16 @@ public class Game {
         gameStopWatch.stop();
         updateGameTimerLabel();
 
-        long gameDuration = gameStopWatch.getElapsedTime() / 1000;  // dlugosc gry w sekundach
+        long gameDuration = gameStopWatch.getElapsedTime() / 1000;
         long[] times = readGameTimesFromFile();
 
         if (gameDuration < times[0]) {
-            times[0] = gameDuration;  // aktualizujemy najkrotszy czas gry
+            times[0] = gameDuration;
         }
         if (gameDuration > times[1]) {
-            times[1] = gameDuration;  // aktualizujemy najdluzszy czas gry
+            times[1] = gameDuration;
         }
 
-        // aktualizujemy czasy gry w pliku
         try {
             Path path = Paths.get(gameTimesFile.toURI());
             List<String> lines = Files.readAllLines(path);
@@ -547,14 +536,13 @@ public class Game {
 
             if (lines.size() >= 2) {
                 long[] times = new long[2];
-                times[0] = convertToSeconds(lines.get(0));  // najkrotszy czas
-                times[1] = convertToSeconds(lines.get(1));  // najdluzszy czas
+                times[0] = convertToSeconds(lines.get(0));
+                times[1] = convertToSeconds(lines.get(1));
                 return times;
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
-
 
         return new long[]{Long.MAX_VALUE, 0};
     }
@@ -588,9 +576,9 @@ public class Game {
 
     private void updatePlayerTurnLabel() {
         if (currentPlayer == PieceType.RED) {
-            playerTurn = "Czerwony";
+            playerTurn = "Red";
         } else if (currentPlayer == PieceType.WHITE) {
-            playerTurn = "Biały";
+            playerTurn = "White";
         }
     }
 

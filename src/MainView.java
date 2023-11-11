@@ -38,7 +38,6 @@ import java.util.concurrent.atomic.AtomicReference;
 public class MainView {
 
     @FXML
-
     private Stage stage;
     public BorderPane root;
     private Scene scene;
@@ -56,14 +55,13 @@ public class MainView {
     Image image_hourglass = new Image(new FileInputStream("src/resources/images/hourglass.png"));
     Image icon = new Image(new FileInputStream("src/resources/images/checkers.png"));
 
-
     public MainView() throws FileNotFoundException {
-
     }
+
     public MainView(Stage stage) throws IOException {
         this.stage = stage;
         stage.getIcons().add(icon);
-        stage.setTitle("Warcaby");
+        stage.setTitle("Checkers");
         try {
             buildMenuUI();
         } catch (IOException e) {
@@ -78,10 +76,11 @@ public class MainView {
         stage.setScene(scene);
         stage.show();
     }
+
     @FXML
     private void startPVPGame(ActionEvent event) {
         gamePVP = new Game(this);
-        Node source = (Node) event.getSource(); //wyswietlanie w tym samym oknie
+        Node source = (Node) event.getSource(); // Displaying in the same window
         stage = (Stage) source.getScene().getWindow();
         buildGameUI(gamePVP);
         startMoveTimer();
@@ -90,6 +89,7 @@ public class MainView {
             gamePVP.setOnMoveCompleteListener(this::stopTimer);
         }
     }
+
     @FXML
     private void startPVEGame(ActionEvent event) {
         gamePVE = new ComputerGameEasy(this);
@@ -101,6 +101,7 @@ public class MainView {
             gamePVE.setOnMoveCompleteListener(this::stopTimer);
         }
     }
+
     @FXML
     private void buildStatistics(ActionEvent event) {
         List<String> stats = new ArrayList<>();
@@ -112,11 +113,11 @@ public class MainView {
         }
         Stage statisticsStage = new Stage();
 
-        Label longestGameLabel = new Label("Najkrótszy mecz: " + stats.get(0));
-        Label shortestGameLabel = new Label("Najdłuższy mecz: " + stats.get(1));
-        Label redWinsLabel = new Label("Liczba wygranych meczy przez białą drużynę: " + stats.get(2));
-        Label whiteWinsLabel = new Label("Liczba wygranych meczy przez czerwoną drużynę: " + stats.get(3));
-        Label totalPiecesTakenLabel = new Label("Liczba sumarycznie zbitych pionów: " + stats.get(4));
+        Label longestGameLabel = new Label("Shortest game: " + stats.get(0));
+        Label shortestGameLabel = new Label("Longest game: " + stats.get(1));
+        Label redWinsLabel = new Label("Number of wins by the white team: " + stats.get(2));
+        Label whiteWinsLabel = new Label("Number of wins by the red team: " + stats.get(3));
+        Label totalPiecesTakenLabel = new Label("Total number of captured pieces: " + stats.get(4));
 
         VBox statisticsVBox = new VBox(
                 longestGameLabel,
@@ -132,12 +133,11 @@ public class MainView {
 
         statisticsStage.setScene(scene);
         statisticsStage.getIcons().add(icon);
-        statisticsStage.setTitle("Statystyki");
+        statisticsStage.setTitle("Statistics");
         statisticsStage.show();
     }
 
     private void buildGameUI(Game game) {
-
         currentPlayerLabel = new Label();
         currentPlayerLabel.setFont(new Font("Lucida Console", 24));
         whitePiecesLabel = new Label();
@@ -196,7 +196,7 @@ public class MainView {
         StopWatch gameStopWatch = game.getGameStopWatch();
         gameStopWatch.start();
 
-        AtomicReference<Timeline> pvpTimelineRef = new AtomicReference<>(); //tworzymy obiekt AtomicReference po to aby operacje na tym zegarze byly bezpieczne
+        AtomicReference<Timeline> pvpTimelineRef = new AtomicReference<>(); // Create an AtomicReference object to make operations on this timer safe
         pvpTimelineRef.set(new Timeline(new KeyFrame(Duration.seconds(1), e -> {
             long elapsedTime = gameStopWatch.getElapsedTime();
             GameTimeLabel.setText(formatElapsedTime(elapsedTime));
@@ -206,7 +206,7 @@ public class MainView {
             }
         })));
 
-        Timeline currentPlayerTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> { //aktualizacja napisu ktorego gracza teraz kolej
+        Timeline currentPlayerTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> { // Update the label indicating whose turn it is
             updateCurrentPlayerLabel(game);
         }));
         currentPlayerTimeline.setCycleCount(Timeline.INDEFINITE);
@@ -216,7 +216,7 @@ public class MainView {
         pvpTimeline.setCycleCount(Timeline.INDEFINITE);
         pvpTimeline.play();
 
-        Timeline piecesTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> { //aktualizacja napisu ilosci pionow
+        Timeline piecesTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> { // Update the label indicating the number of pieces
             game.getNumberOfPieces();
             updatePiecesLabels(game);
         }));
@@ -227,11 +227,11 @@ public class MainView {
         gameScene.getStylesheets().add("resources/css/style.css");
         Font.loadFont(getClass().getResourceAsStream("src/resources/fonts/Montserrat-Regular.ttf"), 20);
 
-        gameScene.addEventFilter(KeyEvent.KEY_PRESSED, event -> { // powrot do menu poprzez wcisniecie przycisku escape
+        gameScene.addEventFilter(KeyEvent.KEY_PRESSED, event -> { // Return to the menu by pressing the escape key
             if (event.getCode() == KeyCode.ESCAPE) {
                 Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-                alert.setTitle("Wyjście do menu");
-                alert.setHeaderText("Czy jesteś pewny, że chcesz wrócić do Menu?");
+                alert.setTitle("Return to Menu");
+                alert.setHeaderText("Are you sure you want to return to the Menu?");
 
                 Optional<ButtonType> result = alert.showAndWait();
                 if (result.isPresent() && result.get() == ButtonType.OK) {
@@ -251,7 +251,7 @@ public class MainView {
         stage.show();
     }
 
-    private String formatElapsedTime(long millis) { //formatujemy miniony czas
+    private String formatElapsedTime(long millis) { // Format the elapsed time
         long minutes = (millis / 1000) / 60;
         long seconds = (millis / 1000) % 60;
         return String.format("%02d:%02d", minutes, seconds);
@@ -259,13 +259,12 @@ public class MainView {
 
     public void updateCurrentPlayerLabel(Game game) {
         String currentPlayer = game.getPlayerTurn().toString();
-        if(Objects.equals(currentPlayer, "WHITE")) {
-            currentPlayer = "Biały";
+        if (Objects.equals(currentPlayer, "WHITE")) {
+            currentPlayer = "White";
+        } else {
+            currentPlayer = "Red";
         }
-        else {
-            currentPlayer = "Czerwony";
-        }
-        currentPlayerLabel.setText("Aktualny gracz: " + currentPlayer);
+        currentPlayerLabel.setText("Current player: " + currentPlayer);
     }
 
     public void updatePiecesLabels(Game game) {
@@ -273,13 +272,12 @@ public class MainView {
         int redPieces = game.redPieces;
 
         Platform.runLater(() -> {
-            whitePiecesLabel.setText("Białe pionki: " + whitePieces);
-            redPiecesLabel.setText("Czerwone pionki: " + redPieces);
+            whitePiecesLabel.setText("White pieces: " + whitePieces);
+            redPiecesLabel.setText("Red pieces: " + redPieces);
         });
     }
 
     private void startMoveTimer() {
-
         if (moveTimer != null) {
             moveTimer.stop();
         }
@@ -287,17 +285,17 @@ public class MainView {
         moveTime = 30 * 1000;
 
         moveTimer = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
-            moveTime -= 1000; // Odejmujemy sekundę
+            moveTime -= 1000; // Subtract one second
             moveTimerLabel.setText(formatElapsedTime(moveTime));
             if (moveTime <= 0) {
                 moveTimer.stop();
             }
-
         }));
 
         moveTimer.setCycleCount(Timeline.INDEFINITE);
         moveTimer.play();
     }
+
     public void resetTimer() {
         if (moveTimer != null) {
             moveTimer.stop();
@@ -328,6 +326,5 @@ public class MainView {
 
     public void stopTimer() {
         moveTimer.stop();
-
     }
 }

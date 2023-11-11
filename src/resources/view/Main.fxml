@@ -4,11 +4,12 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.AnchorPane?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="820.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="MainView">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="900.0" prefWidth="1300.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="MainView">
    <children>
-      <Label fx:id="gameTitle" layoutX="300.0" layoutY="100.0" prefHeight="17.0" prefWidth="600.0" text="Warcaby" />
-      <Button layoutX="500.0" layoutY="250.0" mnemonicParsing="false" onAction="#startPVPGame" prefWidth="200" text="Gra z innym Graczem" />
-      <Button layoutX="500.0" layoutY="350.0" mnemonicParsing="false" onAction="#startPVEGame" prefWidth="200" text="Gra z komputerem" />
-      <Button layoutX="500.0" layoutY="450.0" mnemonicParsing="false" onAction="#buildStatistics" prefWidth="200" text="Statystyki" />
+      <Label fx:id="gameTitle" layoutX="350.0" layoutY="99.0" prefHeight="17.0" prefWidth="600.0" text="Checkers" />
+      <Button layoutX="538.0" layoutY="250.0" mnemonicParsing="false" onAction="#startPVPGame" prefWidth="225" text="Play with another Player" />
+      <Button layoutX="538.0" layoutY="347.0" mnemonicParsing="false" onAction="#startPVEGame" prefWidth="225" text="Play with Computer" />
+      <Button layoutX="538.0" layoutY="446.0" mnemonicParsing="false" onAction="#buildStatistics" prefWidth="225" text="Statistics" />
+
    </children>
 </AnchorPane>

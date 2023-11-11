@@ -1,4 +1,4 @@
-public class MoveResult { //klasa sluzaca do okreslania typow ruchu
+public class MoveResult { // Class used to determine move types
 
     private final MoveType type;
     private final Piece piece;
