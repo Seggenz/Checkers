@@ -13,6 +13,6 @@ Game has two modes:
 * A piece reaching the end of the board becomes a king.
 * Kings can move any number of squares in any direction.
 * Kings can move backward.
-* There is a time limit for each move; exceeding it results in a random move."
+* There is a time limit for each move; exceeding it results in a random move.
 ## Statitcs
 In the game, a statistics mechanism has been implemented. After each completed game, it compares the match statistics with those in the menu and updates them.
